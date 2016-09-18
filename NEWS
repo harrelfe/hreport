@@ -1,0 +1,73 @@
+Changes in version 0.7-2 (2016-09-14)
+   * dReport: added exclude1 argument, default to TRUE (see Hmisc::ggplot.summaryP)
+	 * Require Hmisc >= 4.0-0, rms >= 5.0-0
+	 * accrualReport: changed target enrollment/randomization curves to thick grayscale lines
+
+Changes in version 0.7-1 (2016-04-08)
+   * dReport: added stable argument for suppressing backup tables
+	 * startPlot: stopped suppressing arguments for spar that are not in par
+	 * survReport: added opts argument, mylim argument
+	 * survReport: reduced font size of ylab when long, added markevent argument
+	 * accrualReport: added studynos argument
+	 * greport.sty: attach ocg-p LaTeX package so that ocgtools no longer needs ocg, asymptote, acrotex
+	 * greport.sty: added poptype=3 to use tiny tables and no actual pop-ups
+	 * survReport: changed default markevent to TRUE
+
+Changes in version 0.7-0 (2015-12-02)
+	 * survReport: plot cumulative incidence estimates when left hand side of formula contains Surv objects for competing risks
+	 * upFirst: removed function; added to Hmisc
+
+Changes in version 0.6-0 (2015-08-30)
+   * accrualReport: put zoomed cumulative distribution on same graph as regular
+	 * exReport: added option plotExRemain to suppress 2-panel dot chart, solved problem with collisions of labels on vertical cumulative exclusion plot
+	 * NAMESPACE: import base functions used
+	 * exReport: avoided collisions in vertical dot chart, excluded actually randomized subjects from exclusion frequencies
+	 * exReport: fixed exclusion table so that even though exclusion counts for numerators exclude any randomized subjects, special conditions (indented) use all enrolled subjects in the denominator
+
+Changes in version 0.5-3 (2015-04-20)
+   * putFig: add \clearpage after every appendix table
+   * exReport: fine-tuned vertical dot plot
+   * dReport: rotated strip labels
+   * Added new greport option nontx.col and use that in other functions, for non-treatment groups
+   * dReport: changed strip label font size
+   * dReport: run ggplot.summaryP output through colorFacet (new in Hmisc)
+   * upFirst: leave all words with > 1 upper case letter unchanged (for acronyms)
+   * accrualReport: changed denominator to randomized subjects for table corresponding to box plots of days to randomization
+   * all reporting functions: use upFirst(lower=TRUE) for captions
+   * appsection: new function
+   * sampleFrac: capped fraction at 1.0, issued warning if > 1 and assumes this indicates that analysis is to compare randomized with non-randomized subjects
+   * test.Rnw, report.Rnw: switch to using changepage style instead of chngpage
+   * Misc: use gsub instead of translate()
+   * survReport: added aehaz argument, fixed caption for when differences don't apply (no strata)
+   * startPlot: ignored non-par parameters in ...
+   * survReport: changed default y.n.risk to 0 (used if what='1-S')
+   * exReport: added short caption when using app
+   * survReport: added times argument
+   * nriskReport: changed any(duplicated()) to anyDuplicated()
+
+
+Changes in version 0.5-2 (2014-11-21)
+   * accrualReport: axis.Date was not positioning axis labels containing only 4-digit years at Jan 1 so wrote customized axisDate function
+   * Better escaping of special characters
+   * dReport: handle special characters in table captions
+   * dReport: added append=TRUE in call to latex() for proportions
+   * exReport: added apptail argument for appendix table of IDs
+   * All functions: checked that panel and subpanel containing only legal LaTeX macro name characters (A-Z a-z -); . are auto-removed
+
+Changes in version 0.5-1 (2014-04-15)
+   * survReport: changed to use npsurv instead of survfit.formula
+	 * exReport: changed order of output so that analysis of randomized patients marked for exclusions appears last; use LaTeX chngpage package to allow detailed table to go into left margin so as to be centered on page
+   * exReport: added adjustwidth argument
+	 * accrualReport: allowed enrollment target N to be omitted
+   * exReport: fine tuning
+   * nriskReport: new report to show number of subjects still being followed at each day
+	 * Merge: added support for data.table
+   * nriskReport: added id() variable
+   * exReport: fixed bug when there is an exclusion with 0 frequency
+   * accrualReport: improved graphics formatting, added minrand argument
+   * accrualReport: added enrollmax argument, clarified notation
+   * exReport: added ignoreExcl, ignoreRand arguments
+   * all: added greportOption texwhere; default is 'gentex'; can specify texwhere='' to write non-appendix LaTeX code to console as for knitr
+   * dReport: for byx for discrete Y, sense when Y is binary and use Wilson interval instead of bootstrap; adjust SE using confidence interval if proportion is 0 or 1
+   * dReport: changed discreteness non-binary classification to use maximum number of unique values or Y instead of minimum
+   * add globalVariables call to nriskReport
