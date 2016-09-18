@@ -6,7 +6,8 @@ It is well appreciated in the statistical and graphics design communities that g
 
 hreport marries R, the R Hmisc, ggplot2 and plotly packages, rmarkdown, and html
 to produce reproducible clinical trial reports with a minimum of
-coding.  hreport composes all figure captions and makes heavy use of
+coding.  It is recommended that you use html notebooks in RStudio so that code can be selectively shown in the report using buttons to view/hide individual chunks or for the entire report.
+hreport composes all figure captions and makes heavy use of
 analysis file annotations such as variable labels and units of
 measurement.  Some new graphical elements are introduced such as
 special dot charts that replace tables, extended box plots, split
