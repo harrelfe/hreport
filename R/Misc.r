@@ -64,7 +64,7 @@ mfrowSuggest <- function(n, small=FALSE) {
   mf
 }
 
-#' Set greport Options
+#' Set hreport Options
 #'
 #' @param \dots a series of options for which non-default values are desired:
 #' \itemize{
@@ -87,8 +87,8 @@ mfrowSuggest <- function(n, small=FALSE) {
 #'  \item{\code{texwhere}:}{default is \code{"texdir"} to use location specified by \code{texdir}.  Set to \code{""} to write generated non-appendix LaTeX code to the console as expected by \code{knitr}}
 #'	\item{\code{defs}"}{fully qualified file name to which to write LaTeX macro definitions such as poptables}
 #' }
-setgreportOption <- function(...) {
-  default <- getOption('greport')
+sethreportOption <- function(...) {
+  default <- getOption('hreport')
   opts <- list(...)
   alpha.f <- if(length(opts$alpha.f)) opts$alpha.f else 0.7
   if(! length(default))
@@ -108,7 +108,7 @@ setgreportOption <- function(...) {
 
   if(length(opts)) {
     if(any(names(opts) %nin% names(default)))
-      stop(paste('greport options must be one of the following:',
+      stop(paste('hreport options must be one of the following:',
                  paste(names(default), collapse=' ')))
     default[names(opts)] <- opts
   }
@@ -121,16 +121,16 @@ setgreportOption <- function(...) {
                             "darkgreen", "#ff0000", "orange", "#00ff00",
                             "brown"),
                           default$tx.col)[1 : 2], alpha.f=alpha.f)
-  options(greport = default)
+  options(hreport = default)
   invisible()
 }
 
-#' Setup lattice plots using greport options
+#' Setup lattice plots using hreport options
 #'
 #' Initializes colors and other graphical attributes based on
-#' what is stored in system option \code{greport}.
+#' what is stored in system option \code{hreport}.
 latticeInit <- function() {
-  opt <- getOption('greport')
+  opt <- getOption('hreport')
 
   tx.col <- opt$tx.col
   nontx.col <- opt$nontx.col
@@ -176,15 +176,15 @@ latticeInit <- function() {
 }
 
 #'  
-#' Get greport Options
+#' Get hreport Options
 #'
-#' Get greport options, assigning default values of unspecified optios.
+#' Get hreport options, assigning default values of unspecified optios.
 #'
 #' @param opts character vector containing list of option names to retrieve.  If only one element, the result is a scalar, otherwise a list.  If \code{opts} is not specified, a list with all current option settings is returned.
 #' @export
 
-getgreportOption <- function(opts=NULL) {
-  go <- getOption('greport')
+gethreportOption <- function(opts=NULL) {
+  go <- getOption('hreport')
   if(! length(opts)) return(go)
   go <- go[opts]
   if(length(opts) == 1) go <- go[[1]]
@@ -193,7 +193,7 @@ getgreportOption <- function(opts=NULL) {
 
 #' Compute Sample Fractions
 #'
-#' Uses denominators stored with \code{setgreportOption} along with counts specified to \code{SampleFrac} to compute fractions of subjects in current analysis
+#' Uses denominators stored with \code{sethreportOption} along with counts specified to \code{SampleFrac} to compute fractions of subjects in current analysis
 #'
 #' @param n integer vector, named with \code{"enrolled","randomized"} and optionally also including treatment levels.
 #' @param nobsY a result of the the \code{nobsY} Hmisc function
@@ -201,8 +201,8 @@ getgreportOption <- function(opts=NULL) {
 #' @export
 
 sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
-  denom <- getgreportOption('denom')
-  if(any(is.na(denom))) stop('denom must be defined with setgreportOption()')
+  denom <- gethreportOption('denom')
+  if(any(is.na(denom))) stop('denom must be defined with sethreportOption()')
   if(names(n)[1] != 'enrolled')
     n <- structure(c(n[1], n), names=c('enrolled', names(n)))
   if(all(names(n) %in% c('enrolled', 'randomized')))
@@ -242,78 +242,66 @@ sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
 
 #' Draw Needles
 #'
-#' Create a LaTeX \code{picture} to draw needles for current sample sizes.  Uses colors set by call to \code{setgreportOptions}.
+#' Create an html base64 string from a png graphic to draw needles for current sample sizes.  Uses colors set by call to \code{sethreportOptions}.
 #'
 #' @param sf output of \code{sampleFrac}
-#' @param name character string name of LaTeX variable to create
-#' @param file output file name (character string)
-#' @param append set to \code{FALSE} to start a new \code{file}
 #' @export
 
-# Future: for html output: base64::img(pngNeedle(sf, col=co))
 dNeedle <- function(sf, name, file='', append=TRUE) {
-  co <- getgreportOption(c('er.col', 'tx.col'))
+  co <- gethreportOption(c('er.col', 'tx.col'))
   co <- c(co$er.col, co$tx.col)
-  latexNeedle(sf, col=co, name=name, file=file, append=append)
+  base64::img(pngNeedle(sf, col=co))
 }
 
 
 #' Put Figure
 #'
-#' Included a generated figure within LaTex document.  \code{tcaption} and \code{tlongcaption} only apply if \code{setgreportOption(tablelink="hyperref")}.
+#' Included a generated figure within LaTex document.  \code{tcaption} and \code{tlongcaption} only apply if \code{sethreportOption(tablelink="hyperref")}.
 #'
+#' @x a graphics object that is rendered by a \code{print} method
 #' @param panel character. Panel name.
 #' @param name character. Name for figure.
 #' @param caption character. Short caption for figure.
 #' @param longcaption character. Long caption for figure.
 #' @param tcaption character.  Short caption for supporting table.
 #' @param tlongcaption character.  Long caption for supporting table.
-#' @param poptable an optional character string containing LaTeX code that will be used as a pop-up tool tip for the figure (typically a tabular).  Set to \code{NULL} to suppress supplemental tables that back up figures.
-#' @param popfull set to \code{TRUE} to make the pop-up be full-page
-#' @param sidecap set to \code{TRUE} (only applies if \code{greportOption(figenv="SCfigure")}) to assume the figure is narrow and to use side captions
-#' @param outtable set to \code{TRUE} to only have the caption and hyperlink to graphics in a LaTeX table environment and to leave the tabulars to free-standing LaTeX markup.  This is useful when the table is long, to prevent hyperlinking from making the table run outside the visable area.  Instead of the hyperlink area being the whole table, it will be the caption.  A \code{clearpage} is issued after the tabular.
-#' @param append logical. If \sQuote{TRUE} output will be appended instead of overwritten.
+#' @param poptable an optional character string containing HTML code that will be placed in the long caption
+#' @needles a \code{base64} character string expected to contain the output of \code{dNeedle}, to put at the rightmost part of the long caption
+#' @param sidecap set to \code{TRUE} (only applies if \code{hreportOption(figenv="SCfigure")}) to assume the figure is narrow and to use side captions
 #' @export
 
-putFig <- function(panel, name, caption=NULL, longcaption=NULL,
+putFig <- function(x, caption=NULL, longcaption=NULL,
                    tcaption=caption, tlongcaption=NULL,
-                   poptable=NULL, popfull=FALSE, sidecap=FALSE,
-                   outtable=FALSE, append=TRUE) {
-  o <- getgreportOption()
+                   poptable=NULL, needles=NULL, sidecap=FALSE) {
+
+  o <- gethreportOption()
   gtype     <- o$gtype
   texdir    <- o$texdir
   texwhere  <- o$texwhere
   tablelink <- o$tablelink
-  figenv    <- o$figenv
-  figpos    <- o$figpos
-  if(! sidecap) figenv <- 'figure'
+#  figenv    <- o$figenv
+#  figpos    <- o$figpos
 
   if(length(gtype) && gtype == 'interactive') return(invisible())
+
+  putHfig(x, longcaption, scap=caption, extra=c(poptable, needles))
   
-  bcenter <- if(figenv == 'figure') '\\centerline{' else ''
-  ecenter <- if(figenv == 'figure') '}' else ''
-  
-  panel <- gsub('\\.', '-', panel)
-  name  <- gsub('\\.', '-', name)
   file  <- sprintf('%s/%s.tex', texdir, panel)
   if(texwhere == '') file <- ''
 
-  ## if(length(caption)) caption <- latexTranslate(caption)
-  ## if(length(longcaption)) longcaption <- latexTranslate(longcaption)
-
-  sf <- function(...) paste(sprintf(...), '%\n', sep='')
+#  sf <- function(...) paste(sprintf(...), '%\n', sep='')
   cap <- lab <- tlab <- ""
-  if(length(longcaption))
-    cap <- sf("\\caption[%s]{%s", caption, longcaption)
-  else
-    if(length(caption)) cap <- sf("\\caption{%s", caption)
-  else
-    cap <- '\\caption{'
-  
-  if(length(caption)) {
-    lab  <- sf("\\label{fig:%s}", name)
-    tlab <- sf("\\label{tab:%s}", name)
-  }
+#  if(length(longcaption))
+#    cap <- sf("\\caption[%s]{%s", caption, longcaption)
+#  else
+#    if(length(caption)) cap <- sf("\\caption{%s", caption)
+#  else
+#    cap <- '\\caption{'
+#  
+#  if(length(caption)) {
+#    lab  <- sf("\\label{fig:%s}", name)
+#    tlab <- sf("\\label{tab:%s}", name)
+#  }
 
   if(! length(poptable)) {
     cap <- paste(cap, '}', sep='')
@@ -332,9 +320,7 @@ putFig <- function(panel, name, caption=NULL, longcaption=NULL,
     ref <- if(length(caption))
       sprintf(' {\\smaller (Figure \\ref{fig:%s})}.', name)
     else ''
-    ## linkfromtab <- if(outtable)
-    ##    sf('\\hyperref[fig:%s]{~\\textcolor[gray]{0.5}{$\\mapsto$}}', name)
-    ##  else ''
+
     tcap <- if(length(tlongcaption))
       sf('\\caption[%s]{%s%s}', tcaption, tlongcaption, ref)
     else if(length(tcaption)) sf('\\caption[%s]{%s%s}', tcaption, tcaption,
@@ -354,70 +340,6 @@ putFig <- function(panel, name, caption=NULL, longcaption=NULL,
         file=file, append=TRUE)
     appfile <- sprintf('%s/app.tex', texdir)
 
-    if(outtable)
-      cat(sf('\\clearpage\\begin{table}[%s]%s%s\\end{table}\n%s\\clearpage\n\n',
-           figpos, tcap, tlab, poptable),
-        file=appfile, append=TRUE)
-    else
-      cat(sf('\\begin{table}[%s]%s%s\\hyperref[fig:%s]{%s}\\end{table}\\clearpage\n\n',
-             figpos, tcap, tlab, name, poptable),
-          file=appfile, append=TRUE)
-  }
-  invisible()
-}
-
-#' Plot Initialization
-#'
-#' Toggle plotting.  Sets options by examining \code{setgreportOption(gtype=)}.
-#'
-#' @param file character.  Character string specifying file prefix.
-#' @param h numeric.  Height of plot in inches, default=7.
-#' @param w numeric.  Width of plot in inches, default=7.
-#' @param lattice logical.  Set to \code{FALSE} to prevent \code{latticeInit} from being called.
-#' @param \dots Arguments to be passed to \code{spar}.
-#' @export
-
-startPlot <- function(file, h=7, w=7, lattice=TRUE, ...) {
-  gtype  <- getgreportOption('gtype')
-  pdfdir <- getgreportOption('pdfdir')
-  if(! length(gtype) || gtype != 'interactive') {
-    file <- paste(pdfdir, '/', gsub('\\.', '-', file), '.pdf', sep='')
-    pdf(file, height=h, width=w)
-  }
-  if(! existsFunction('spar'))
-    spar <-
-      function(mar=if(!axes)
-               c(2.25+bot-.45*multi,2+left,.5+top+.25*multi,.5+rt) else
-               c(3.25+bot-.45*multi,3.5+left,.5+top+.25*multi,.5+rt),
-               lwd = if(multi)1 else 1.75,
-               mgp = if(!axes) mgp=c(.75, .1, 0) else
-               if(multi) c(1.5, .365, 0) else c(2.4-.4, 0.475, 0),
-               tcl = if(multi)-0.25 else -0.4, xpd=FALSE,
-               bot=0, left=0, top=0, rt=0, ps=if(multi) 14 else 10,
-               mfrow=NULL, axes=TRUE, cex.lab=1.25, cex.axis=1.15,
-               ...) {
-        multi <- length(mfrow) > 0
-        par(mar=mar, lwd=lwd, mgp=mgp, tcl=tcl, ps=ps, xpd=xpd,
-            cex.lab=cex.lab, cex.axis=cex.axis, ...)
-        if(multi) par(mfrow=mfrow)
-      }
-  dotlist <- list(...)
-  if(length(dotlist)) {
-    allow <- union(names(par()), setdiff(names(formals(spar)), '...'))
-    dotlist <- dotlist[names(dotlist) %in% allow]
-  }
-  do.call('spar', dotlist)
-  if(lattice) latticeInit()
-  invisible()
-}
-
-#' @rdname startPlot
-#' @export
-
-endPlot <- function() {
-  gtype <- getgreportOption('gtype')
-  if(length(gtype) && gtype == 'interactive') return(invisible())
-  dev.off()
   invisible()
 }
 
@@ -432,7 +354,7 @@ endPlot <- function() {
 #' @export
 
 appsection <- function(section=NULL, subsection=NULL, main=FALSE, panel='') {
-  o <- getgreportOption()
+  o <- gethreportOption()
   texdir   <- o$texdir
   if(main) {
     texwhere <- o$texwhere
