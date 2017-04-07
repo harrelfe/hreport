@@ -85,7 +85,8 @@ mfrowSuggest <- function(n, small=FALSE) {
 #'  \item{\code{pdfdir}:}{name of subdirectory in which to write \code{pdf} graphics}
 #'  \item{\code{texdir}:}{name of subdirectory in which to write \code{LaTeX} code}
 #'  \item{\code{texwhere}:}{default is \code{"texdir"} to use location specified by \code{texdir}.  Set to \code{""} to write generated non-appendix LaTeX code to the console as expected by \code{knitr}}
-#'	\item{\code{defs}"}{fully qualified file name to which to write LaTeX macro definitions such as poptables}
+#'	\item{\code{defs}:}{fully qualified file name to which to write LaTeX macro definitions such as poptables}
+#'  \item{\code{appfile}:}{name of temporary file to which to write appendix information such as subject ID listings.  Defaults to \code{tempfile()}.}
 #' }
 sethreportOption <- function(...) {
   default <- getOption('hreport')
@@ -104,8 +105,9 @@ sethreportOption <- function(...) {
            denom = c(enrolled=NA, randomized=NA),
            tablelink = 'hyperref', figenv='figure', figpos='htb!',
            gtype = 'pdf', pdfdir='pdf', texdir='gentex', 
-           texwhere='texdir', defs='gentex/defs.tex')
-
+           texwhere='texdir', defs='gentex/defs.tex',
+           appfile=tempfile())
+  
   if(length(opts)) {
     if(any(names(opts) %nin% names(default)))
       stop(paste('hreport options must be one of the following:',
@@ -197,7 +199,7 @@ gethreportOption <- function(opts=NULL) {
 #'
 #' @param n integer vector, named with \code{"enrolled","randomized"} and optionally also including treatment levels.
 #' @param nobsY a result of the the \code{nobsY} Hmisc function
-#' @param table set to \code{TRUE} to return as an attribute \code{"table"} a character string containing a LaTeX tabular showing the pertinent frequencies created from \code{n} and the \code{denom} option, and if \code{nobsY} is present, adding another table with response variable-specific counts.
+#' @param table set to \code{TRUE} to return as an attribute \code{"table"} a character string containing an HTML table showing the pertinent frequencies created from \code{n} and the \code{denom} option, and if \code{nobsY} is present, adding another table with response variable-specific counts.
 #' @export
 
 sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
@@ -216,25 +218,26 @@ sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
   f <- pmin(f, 1.)
   if(! table) return(f)
   tab <- data.frame(upFirst(names(n)), denom, n)
-  tab <- latexTabular(tab, align = 'lrr', translate=FALSE, hline=1,
-                      headings=c('Category', '$N$', 'Used in Analysis'))
+  size <- 46; border <- 1
+  tab <- html(tab, align=c('l', 'r', 'r'),
+              header=c('Category', 'N', 'Used'),
+              file=FALSE, size=size, border=border, rownames=FALSE)
+  tab <- unclass(tab)
   if(length(nobsY)) {
-    tab <- paste(tab, '\n\\vspace{1ex}\n\\hsepline\n\\vspace{1ex}\n')
     if(length(m <- nobsY$nobsg)) {
       m <- t(m)
       d <- cbind(Variable=rownames(m), as.data.frame(m))
-      tab2 <- latexTabular(d, align=paste('l',
-                                paste(rep('r', ncol(m)), collapse=''),
-                                sep=''),
-                           translate=FALSE, hline=1)
+      tab2 <- html(d, align=c('l', rep('r', ncol(m))),
+                   file=FALSE, size=size, border=border, rownames=FALSE)
     }
     else {
       m <- nobsY$nobs
       d <- data.frame(Variable=names(m), N=m)
-      tab2 <- latexTabular(d, align='lr', translate=FALSE, hline=1,
-                           headings=c('Variable', '$N$'))
+      tab2 <- html(d, align=c('l', 'r'),
+                   header=c('Variable', 'N'),
+                   file=FALSE, size=size, border=border, rownames=FALSE)
     }
-    tab <- paste(tab, tab2)
+    tab <- c(tab, unclass(tab2))
   }
   attr(f, 'table') <- tab
   f
@@ -247,101 +250,12 @@ sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
 #' @param sf output of \code{sampleFrac}
 #' @export
 
-dNeedle <- function(sf, name, file='', append=TRUE) {
+dNeedle <- function(sf) {
   co <- gethreportOption(c('er.col', 'tx.col'))
   co <- c(co$er.col, co$tx.col)
   base64::img(pngNeedle(sf, col=co))
 }
 
-
-#' Put Figure
-#'
-#' Included a generated figure within LaTex document.  \code{tcaption} and \code{tlongcaption} only apply if \code{sethreportOption(tablelink="hyperref")}.
-#'
-#' @x a graphics object that is rendered by a \code{print} method
-#' @param panel character. Panel name.
-#' @param name character. Name for figure.
-#' @param caption character. Short caption for figure.
-#' @param longcaption character. Long caption for figure.
-#' @param tcaption character.  Short caption for supporting table.
-#' @param tlongcaption character.  Long caption for supporting table.
-#' @param poptable an optional character string containing HTML code that will be placed in the long caption
-#' @needles a \code{base64} character string expected to contain the output of \code{dNeedle}, to put at the rightmost part of the long caption
-#' @param sidecap set to \code{TRUE} (only applies if \code{hreportOption(figenv="SCfigure")}) to assume the figure is narrow and to use side captions
-#' @export
-
-putFig <- function(x, caption=NULL, longcaption=NULL,
-                   tcaption=caption, tlongcaption=NULL,
-                   poptable=NULL, needles=NULL, sidecap=FALSE) {
-
-  o <- gethreportOption()
-  gtype     <- o$gtype
-  texdir    <- o$texdir
-  texwhere  <- o$texwhere
-  tablelink <- o$tablelink
-#  figenv    <- o$figenv
-#  figpos    <- o$figpos
-
-  if(length(gtype) && gtype == 'interactive') return(invisible())
-
-  putHfig(x, longcaption, scap=caption, extra=c(poptable, needles))
-  
-  file  <- sprintf('%s/%s.tex', texdir, panel)
-  if(texwhere == '') file <- ''
-
-#  sf <- function(...) paste(sprintf(...), '%\n', sep='')
-  cap <- lab <- tlab <- ""
-#  if(length(longcaption))
-#    cap <- sf("\\caption[%s]{%s", caption, longcaption)
-#  else
-#    if(length(caption)) cap <- sf("\\caption{%s", caption)
-#  else
-#    cap <- '\\caption{'
-#  
-#  if(length(caption)) {
-#    lab  <- sf("\\label{fig:%s}", name)
-#    tlab <- sf("\\label{tab:%s}", name)
-#  }
-
-  if(! length(poptable)) {
-    cap <- paste(cap, '}', sep='')
-    cat(sf("\\begin{%s}[%s]\\leavevmode%s\\includegraphics{%s.pdf}%s%s\n%s%s\\end{%s}\n", figenv, figpos, bcenter, name, ecenter, '%', cap, lab, figenv),
-        file=file, append=append)
-    return()
-  }
-
-  if(tablelink == 'tooltip') {
-    cmd <- if(popfull) '\\tooltipw' else '\\tooltipm'
-    cat(sf("\\begin{%s}[%s]\\leavevmode%s\\protect%s{\\includegraphics{%s.pdf}%s{%s}}%s%s\\end{%s}",
-           figenv, figpos, bcenter, cmd, name, ecenter, poptable, cap,
-           lab, figenv),
-        file=file, append=append)
-  } else {
-    ref <- if(length(caption))
-      sprintf(' {\\smaller (Figure \\ref{fig:%s})}.', name)
-    else ''
-
-    tcap <- if(length(tlongcaption))
-      sf('\\caption[%s]{%s%s}', tcaption, tlongcaption, ref)
-    else if(length(tcaption)) sf('\\caption[%s]{%s%s}', tcaption, tcaption,
-                                 ref)
-    else sprintf('\\caption{%s}', ref)
-    cat(sf('\\begin{%s}[%s]\\hyperref[tab:%s]{\\leavevmode%s\\includegraphics{%s.pdf}%s}', figenv, figpos, name, bcenter, name, ecenter),
-        file=file, append=append)
-
-    reft <- sprintf(' {\\smaller (Table \\ref{tab:%s})}}', name)
-    cap <- if(grepl('\\hfill', cap))
-      gsub('\\hfill', paste(reft, '\\hfill', sep=''), cap, fixed=TRUE)
-    else
-      paste(cap, reft, sep='')
-
-    cat(cap, lab, 
-        sprintf('\\end{%s}\n', figenv), sep='',
-        file=file, append=TRUE)
-    appfile <- sprintf('%s/app.tex', texdir)
-
-  invisible()
-}
 
 #' Issue LaTeX section and/or subsection in appendix
 #'

@@ -1,7 +1,7 @@
-Package: greport
-Version: 0.7-2
-Date: 2016-09-14
-Title: Graphical Reporting for Clinical Trials
+Package: hreport
+Version: 0.1-0
+Date: 2016-09-18
+Title: Interactive Graphical HTML Reports for Clinical Trials
 Author: Frank E Harrell Jr <f.harrell@vanderbilt.edu>
 Maintainer: Frank E Harrell Jr <f.harrell@vanderbilt.edu>
 Depends:
@@ -14,13 +14,15 @@ Imports:
     ggplot2,
     Formula,
     survival,
-    methods
+    methods,
+		plotly,
+		base64
 Description: Contains many functions useful for
     monitoring and reporting the results of clinical trials and other
-    experiments in which treatments are compared.  LaTeX is
+    experiments in which treatments are compared.  HTML is
     used to typeset the resulting reports, recommended to be in the
-    context of 'knitr'. The 'Hmisc', 'ggplot2', and 'lattice' packages are used
-    by 'greport' for high-level graphics.
+    context of 'knitr' HTML notebooks. The 'Hmisc', 'plotly', 'ggplot2', and
+		'lattice' packages are used by 'greport' for high-level graphics.
 License: GPL (>= 2)
 URL: http://biostat.mc.vanderbilt.edu/Greport,
     https://github.com/harrelfe/greport

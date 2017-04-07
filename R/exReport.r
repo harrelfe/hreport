@@ -19,7 +19,7 @@
 #' @param subpanel If calling \code{exReport} more than once (e.g., for different values of \code{sort}), specify \code{subpanel} to distinguish the multiple calls.  In that case, \code{-subpanel} will be appended to \code{panel} when creating figure labels and cross-references.
 #' @param head character string.  Specifies initial text in the figure caption, otherwise a default is used.
 #' @param tail a character string to add to end of automatic caption
-#' @param apptail a character string to add to end of automatic caption for appendix table with listing of subject IDs
+#' @param detailTail a character string to add to end of automatic caption for appendix table with listing of subject IDs
 #' @param h height of 2-panel graph
 #' @param w width of 2-panel graph
 #' @param hc height of cumulative exclusion 1-panel graph
@@ -27,7 +27,7 @@
 #' @param adjustwidth used to allow wide detailed exclusion table to go into left margin in order to be centered on the physical page.  The default is \code{'-0.75in'}, which works well when using article document class with default page width.  To use the geometry package in LaTeX with margin=.45in specify \code{adjustwidth='+.90in'}.
 #' @param append set to \code{TRUE} if adding to an existing sub-report
 #' @param popts a list of options to pass to graphing functions
-#' @param app set to \code{FALSE} to prevent writing appendix information
+#' @param details set to \code{FALSE} to prevent writing details about exclusions (IDs, etc.)
 #' @author Frank Harrell
 #' @export
 #' @examples
@@ -36,27 +36,14 @@
 exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                      ignoreExcl=NULL, ignoreRand=NULL, plotExRemain=TRUE,
                      autoother=FALSE, sort=TRUE, whenapp=NULL, erdata=NULL,
-                     panel='excl', subpanel=NULL, head=NULL, tail=NULL,
-                     apptail=NULL, h=5.5, w=6.5, hc=4.5, wc=5,
-                     adjustwidth='-0.75in',
-                     append=FALSE, popts=NULL, app=TRUE) {
+                     head=NULL, tail=NULL,
+                     detailTail=NULL,
+                     details=TRUE) {
 
-  if(grepl('[^a-zA-Z-]', panel))
-    stop('panel must contain only A-Z a-z -')
-  if(length(subpanel) && grepl('[^a-zA-Z-]', subpanel))
-    stop('subpanel must contain only A-Z a-z -')
-
-  file <- sprintf('%s/%s.tex', getgreportOption('texdir'), panel)
-  if(getgreportOption('texwhere') == '') file <- ''
-   else if(!append) cat('', file=file)
-  appfile <- sprintf('%s/app.tex', getgreportOption('texdir'))
-  subp <- if(length(subpanel)) subpanel else ''
-
+  
   if(length(ignoreExcl)) ignoreExcl <- all.vars(ignoreExcl)
   if(length(ignoreRand)) ignoreRand <- all.vars(ignoreRand)
 
-#  Nobs <- nobsY(formula, group=getgreportOption('tx.var'),
-#                data=data, subset=subset, na.action=na.action)
   environment(formula) <- new.env(parent = environment(formula))
   en <- environment(formula)
   assign(envir = en, 'pending',    function(x) x)
@@ -95,15 +82,17 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   mis <- function(x) if(is.factor(x) && length(levels(x)) == 1 &&
                         tolower(levels(x)) %in%
                         c('present', 'yes', 'y', 'true', 'positive'))
-    rep(FALSE, length(x))
-  else is.na(x) | tolower(x) %in% c('unknown','n/a','u','uncertain')
+                       rep(FALSE, length(x))
+                     else is.na(x) | tolower(x) %in% c('unknown','n/a','u','uncertain')
 
-  mblue <- '#0080ff'
+  mu <- markupSpecs$html
+
+#  mblue <- '#0080ff'
   
-  N     <- getgreportOption('denom')[c('enrolled', 'randomized')]
+  N     <- gethreportOption('denom')[c('enrolled', 'randomized')]
   n <- norig <- nrow(X)
-  if(n != N['enrolled'])
-    warning(sprintf('number of observations (%s) does not equal number enrolled (%s) specified using setgreportOption(denom=)', n, N['enrolled']))
+#  if(n != N['enrolled'])
+#    warning(sprintf('number of observations (%s) does not equal number enrolled (%s) specified using sethreportOption(denom=)', n, N['enrolled']))
 
   rnd <- NULL
   if(length(sr)) rnd <- ispos(X[[sr]])
@@ -170,7 +159,7 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     }
     if(length(nexr)) {
       nnre  <- sum(anyre, na.rm=TRUE)
-      exclv <- c(exclv, 'Total Subjects with Any Exclusion')
+      exclv <- c(exclv, 'Total Partcipants with Any Exclusion')
       nexr   <- c(nexr, nnre)
       if(length(Ids)) Ids <- c(Ids, '')
       E <- data.frame(Exclusion=exclv, Frequency=nexr)
@@ -228,11 +217,8 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     cond.denom <- c(cond.denom, cd           )
     margdenom  <- c(margdenom,  norig        )
   }
-  
-  if(n - sum(nexclude) != N['randomized'])
-    warning(sprintf('number enrolled (%s) minus number excluded (%s) does not equal number randomized (%s) specified to setgreportOption(denom=)',
-                    n, sum(nexclude), N['randomized']))
-  fracnewTotal  <- nexclude / n
+
+   fracnewTotal  <- nexclude / n
   fracnewRemain <- nexclude / cond.denom
   fracremain    <- 1. - cumsum(nexclude) / n
   marg <- marg[cadd]
@@ -246,7 +232,7 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   elab <- ifelse(margdenom < norig, paste(elab, b, sep=''), elab)
   swr <- function(w, ...) 
     sapply(strwrap(w, ..., simplify=FALSE),
-           function(x) paste(x, collapse='\n'))
+           function(x) paste(x, collapse='<br>'))
   elabl <- swr(elab, width=25)
   elabr <-  swr(elab, width=25, exdent=8)
   # When smaller font used, wrap with longer width
@@ -261,28 +247,18 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   ell2 <- elabl2[cadd]
   elr2 <- elabr2[cadd]
   
-  ## Make single axis linear graph with cumulative exclusions
-  lb <- paste(panel, 'cumex', sep='-')
-  if(length(subpanel)) lb <- paste(lb, subpanel, sep='-')
-
-  startPlot(lb, h=hc, w=wc, lattice=FALSE,
-            mar=c(1,0,1,0), mgp=c(1.5, .5, 0))
-  plot.new()
   m <- sum(nexclude)
   cumex <- cumsum(nexclude)
   r <- c(10 * floor(cumex[1] / 10), 10 * ceiling(m / 10))
-  par(usr=c(-1.04, 1.04, rev(r)))
-  if(diff(r) < 100)
-    axis(2, pos=0, at=seq(r[1], r[2], by= 1), tcl=-.21, labels=FALSE,
-         col=gray(.8))
-  major <- pretty(r, n=10)
-  minor <- seq(r[1], r[2], by=10)
-  axis(2, pos=0, at=major, cex.axis=.675)
-  axis(2, pos=0, at=minor, tcl=-.25, labels=FALSE)
-  points(rep(.0125, length(cumex)), cumex, pch=19, cex=.7, xpd=NA,
-         col=mblue)
+  xx <- rep(0.0125, length(cumex))
+  p <- plotly::plot_ly()
+  p <- add_markers(p, x=~ xx, y=~ cumex, hoverinfo='y')
+
+  an <- list() # orginally formulated for annotations argument to plotly::layout
   side <- 2
   ones <- character(0)
+  sz <- function(cex) round(14 * cex)
+  j <- 0
   for(i in 1 : length(cumex)) {
     a <- nexclude[i]
     if(a == 1) {
@@ -295,53 +271,80 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     y <- cumex[i]
     u <- if(side == 1) el else er
     v <- paste(if(i == 1) '' else '+', a, '  ', u, sep='')
+    j <- j + 1
+    an[[j]] <-
     ## See if not likely to vertically run into previous entry
     if(i < 3 || (y - cumex[i - 2]) / diff(r) > 0.01) {
       if(side == 1)
-        text(-.135, y, v, adj=1, xpd=NA, col=mblue, cex=cex)
+        list(x=-0.135, y=y, text=v, align='right', xanchor='right', size=sz(cex))
       else
-        text(.07, y, v, adj=0, xpd=NA, col=mblue, cex=cex)
+        list(x=0.07, y=y, text=v, align='right', xanchor='left', size=sz(cex))
     } else {
       if(side == 1)
-        text(-1, y + 0*.0035 * diff(r), v, adj=0, xpd=NA, col=mblue, cex=cex)
-      else
-        text(1, y + 0*.0035 * diff(r), v, adj=1, xpd=NA, col=mblue, cex=cex)
-    }
+        list(x=01, y=y + 0 * 0.0035 * diff(r), text=v, align='left', xanchor='left', size=sz(cex))
+        else
+          list(x=1, y=y + 0 * 0.0035 * diff(r), text=v, align='right', xanchor='right', size=sz(cex))
+          }
     side <- 3 - side
   }
-  if(length(ones)) text(.96, r[2] - diff(r)/15,
-                        paste(c('One exclusion due to:', ones), collapse='\n'),
-                        adj=1, cex=0.65)
-  endPlot()
-  narnd <- if(length(rnd)) ', for subjects not actually randomized' else ''
-  cap <- if(length(head)) head
+  if(length(ones))
+    an[[j + 1]] <- list(x=.96, y=r[2] - 0 * diff(r) / 15, size=sz(0.5),
+                        text=paste(c('One exclusion due to:', ones),
+                                   collapse='<br>'),
+                        align='right', xanchor='right')
+
+  resList <- function(z) {
+    ## take a list of lists each containing possibly different random
+    ## variables on one observation, and put together into a list of vectors
+    v <- unique(as.vector(unlist(sapply(z, names))))
+    n <- length(z)
+    r <- list()   # without NA below a list with NULLs will be formed
+    for(j in v)
+      r[[j]] <- sapply(z, function(x) if(j %in% names(x)) x[[j]] else NA)
+    r
+  }
+
+  p <- add_annotations(p, text=~text, x=~x, y=~y, xref='x', yref='y',
+                       align=~align, xanchor=~xanchor, size=~size,
+                       showarrow=FALSE, data=resList(an))
+  
+  p <- plotly::layout(p, 
+                      xaxis=list(title='', range=c(-1.04, 1.04),
+                                 zeroline=FALSE, showline=FALSE,
+                                 showticklabels=FALSE,
+                                 showgrid=FALSE),
+                      yaxis=list(title='', range=c(r[2] + 1, r[1] - 1),
+                                 zeroline=FALSE, position=0.5,
+                                 anchor='free', showline=TRUE, showgrid=FALSE))
+
+  narnd <- if(length(rnd)) ', for participants not actually randomized' else ''
+  cap   <- if(length(head)) head
    else paste('Cumulative number of exclusions ($y$-axis) and number of additional exclusions after exclusions placed higher', narnd, '.', sep='')
   cap <- paste(cap,
                if(sort) 'Exclusions are sorted by descending number of incremental exclusions.'
         else 'Exclusions are in the prespecified order shown in the figure.')
-  cap <- paste(cap, N['enrolled'], 'subjects were enrolled,',
+  cap <- paste(cap, N['enrolled'], 'participants were enrolled,',
                sum(pending),
-               'non-excluded subjects are pending randomization, and',
-               m, 'subjects were excluded.')
+               'non-excluded participants are pending randomization, and',
+               m, 'participants were excluded.')
   if(length(rnd)) cap <- paste(cap, sum(rnd, na.rm=TRUE),
-                               'subjects were randomized.')
+                               'participants were randomized.')
   
   wrn1 <- wrn2 <- character(0)
   if(norig != N['enrolled'])
-    wrn1 <- sprintf('\\textbf{Note}: Number of observations (%s) does not equal number officially enrolled (%s).',
+    wrn1 <- sprintf('<b>Note</b>: Number of observations (%s) does not equal number officially enrolled (%s).',
                     norig, N['enrolled'])
   if(n - m != N['randomized'])
-    wrn2 <- sprintf('\\textbf{Note}: Number of enrolled (%s) minus number excluded (%s) does not match official number randomized (%s).',
+    wrn2 <- sprintf('<b>Note</b>: Number of enrolled (%s) minus number excluded (%s) does not match official number randomized (%s).',
                     n, m, N['randomized'])
 
   cap <- paste(cap, tail, wrn1, wrn2)
 
-  putFig(panel=panel, name=lb, caption='Cumulative exclusions',
-         longcaption=cap)
+  putHfig(p, cap, scap='Cumulative exclusions')
 
   rf <- function(x) format(round(x, 3))
   f  <- function(x) ifelse(is.na(x), '', format(x))
-  tabl <- data.frame(elab      = c(latexTranslate(elab), '\\textbf{Total}'),
+  tabl <- data.frame(elab      = c(htmlTranslate(elab), mu$bold('Total')),
                      nexclude  = c(nexclude, m),
                      marg      = c(marg, NA),
                      frac      = rf(c(nexclude / n, m / n)),
@@ -350,155 +353,67 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                      row.names = 1 : (length(elab) + 1),
                      stringsAsFactors=FALSE)
 
-  ct <- function(...) cat(..., sep='', file=file, append=TRUE)
-  
-  ct('\\begin{table}[htbp]\\small\n',
-     '\\caption[Exclusions]{Exclusions', narnd, '.  \\texttt{Incremental Exclusions} are those in addition to exclusions in earlier rows.  \\texttt{Marginal Exclusions} are numbers of subjects excluded for the indicated reason whether or not she was excluded for other reasons.  The three \\texttt{Fractions} are based on incremental exclusions.', if(length(tail))' ', tail,
-     '\\label{tab:exclstats', subp, '}}\n',
-     '\\begin{center}\\begin{adjustwidth}{', adjustwidth, '}{',
-     adjustwidth, '}\n',
-     '\\begin{tabular}{lrrrrr}\\hline\\hline\n',
-     '\\multicolumn{1}{c}{Exclusions}&\\multicolumn{1}{c}{Incremental}&\\multicolumn{1}{c}{Marginal}&\\multicolumn{1}{c}{Fraction of}&\\multicolumn{1}{c}{Fraction of}&\\multicolumn{1}{c}{Fraction}\\tabularnewline',
-     '&\\multicolumn{1}{c}{Exclusions}&\\multicolumn{1}{c}{Exclusions}&\\multicolumn{1}{c}{Enrolled}&\\multicolumn{1}{c}{Exclusions}&\\multicolumn{1}{c}{Remaining}\\tabularnewline\\hline\n')
-  for(i in 1 : nrow(tabl)) {
-    with(tabl, ct(as.character(elab[i]),  '&',
-                  nexclude[i], '&',
-                  f(marg)[i],  '&',
-                  frac[i],     '&',
-                  frace[i],    '&',
-                  fracremain[i], '\\tabularnewline'))
-    cn <- cadd[i]
-    if(cn %in% names(Xc)) {
-      ct('\\multicolumn{6}{l}{~~~~$\\frac{', nexcludec[i], '}{',
-         sx <- sum(Xc[, cn], na.rm=TRUE), '}$ =',
-         rf(nexcludec[i] / sx), ' of ', latexTranslate(Xclab[cn]),
-         '}\\tabularnewline\n')
-      ct('&&&&&\\tabularnewline\n')
-    }
-    if(i == (nrow(tabl) - 1)) ct('\\hline')
-    ct('\n')
-  }
-  ct('\\hline\\end{tabular}\\end{adjustwidth}\\end{center}\\end{table}\n\n')
+  cap <- c(mu$italics('Incremental exclusions'),
+           'are those in addition to exclusions in earlier rows.',
+           mu$italics('Marginal exclusions'),
+           'are numbers of participants excluded for the indicated reason',
+           'whether or not she was excluded for other reasons.  The three',
+           mu$italics('Fractions'), 'are based on incremental exclusions.', tail)
 
-  
-  ## Two-panel dot chart
-  if(plotExRemain) {
-    if(npend > 0) {
-      elab       <- c('Pending Randomization', elab)
-      nexclude   <- c(npend, nexclude)
-      marg       <- c(npend,     marg)
-      fracremain <- c(NA, fracremain)
+  coafter <- integer(0)    ## table row numbers after which to add lines spanning all columns
+  cotext  <- character(0)
+  for(i in 1 : nrow(tabl)) {
+    cn <- cadd[i]
+    co <- ''
+    if(cn %in% names(Xc)) {
+      sx <- sum(Xc[, cn], na.rm=TRUE)
+      w <- paste(mu$lspace, mu$frac(nexcludec[i], sx), '=',
+                 rf(nexcludec[i] / sx), 'of', htmlTranslate(Xclab[cn]))
+      co <- if(co == '') w else paste0(co, '<br>', w)
     }
-    excl  <- factor(elab,          levels=rev(elab))
-    excl2 <- factor(c(elab, elab), levels=rev(elab))
-    x <- c(nexclude, marg)
-    j <- length(elab)  # was k + (npend > 0)
-    hh <- c(rep('Incremental Exclusions', j),
-            rep('Single Exclusions',      j))
-    fracremain <- c(fracremain, rep(NA,   j))
-    
-    panel.ex <- 
-      function (x, y, groups, ..., pch, col) {
-        pn <- panel.number()
-        up <- max(x, na.rm=TRUE)
-        if (pn == 1) {
-          ww <- 10 * floor(min(x, na.rm=TRUE) / 10)
-          by <- if(up - ww < 100) c(5, 10) else c(10, 50)
-          panel.abline(v=seq(ww, up, by=by[1]), lwd=.4, col=gray(.75))
-          panel.abline(v=seq(ww, up, by=by[2]), lwd=.6, col=gray(.56))
-          panel.abline(h = y, lwd = .4, col = gray(.7))
-          panel.superpose(x, y, groups = groups, pch = pch, col = col, ...)
-        } else {
-          u <- .01 * floor(min(x, na.rm=TRUE) / 0.01)
-          ww <- .05 * floor(min(x, na.rm=TRUE) / 0.05)
-          up <- max(x, na.rm=TRUE)
-          panel.abline(v = seq(u, up, by=0.01), lwd=.4, col=gray(.75))
-          panel.abline(v = seq(ww, up, by=0.05), lwd=.6, col=gray(.56))
-          panel.dotplot  (x, y, pch=20, col=col[1], ...)
-        }
+    if(co != '') {
+      coafter <- c(coafter, i)
+      cotext  <- c(cotext, co)
       }
-    
-    col <- c('black', mblue)
-    r <-
-      dotplot(excl2 ~ x + fracremain, panel=panel.ex,
-              groups=hh,
-              pch=c(20, 18), col=col,
-              outer = TRUE,
-              scales = list(x = list(relation = "free")),
-              xlab = NULL, between = list(x = 1),
-              key = list(
-                points = list(col = col, pch = c(20,18)),
-                text = list(c('Sequential (Incremental) Exclusions',
-                  'Individual (Marginal) Exclusions'), col = col,
-                  cex = 0.7),
-                columns = 2, between = 0.5, space = "bottom"))
-    r$condlevels[[1]] <- c("Number Excluded", "Fraction Remaining")
-    
-    lb <- paste(panel, 'nexfrac', sep='-')
-    if(length(subpanel)) lb <- paste(lb, subpanel, sep='-')
-    
-    startPlot(lb, h=h, w=w)
-    print(r)
-    endPlot()
-    
-    cap <- if(length(head)) head
-     else sprintf('Left panel: Incremental (sequential) and marginal (each exclusion treated separately) exclusions.  Right panel: Fraction of subjects remaining after incremental exclusions.  The denominator of the fraction is the number of subjects not pending randomization (%s).',
-                  n)
-    cap <- paste(cap,
-     if(sort) 'Exclusions are sorted by descending number of incremental exclusions.'
-     else 'Exclusions are in the prespecified order shown in the figure.')
-    cap <- paste(cap, N['enrolled'], 'subjects were enrolled,',
-                 sum(pending),
-                 'non-excluded subjects are pending randomization, and',
-                 m, 'subjects were excluded.')
-    if(length(rnd)) cap <- paste(cap, sum(rnd, na.rm=TRUE),
-                                 'subjects were randomized.')
-    
-    cap <- paste(cap, tail, wrn1, wrn2)
-    
-    putFig(panel=panel, name=lb,
-           caption='Incremental exclusions and fraction of remaining subjects',
-           longcaption=cap)
   }
+
+  w <- htmlTable(tabl, align='lrrrrr', rnames=FALSE,
+                 header=c('Exclusions', 'Incremental<br>Exclusions',
+                          'Marginal<br>Exclusions',
+                          'Fraction of<br>Enrolled',
+                          'Fraction of<br>Exclusions',
+                          'Fraction<br>Remaining'),
+                 css.cell='min-width: 6em;',
+                 tspanner=c('', cotext),
+                 n.tspanner=diff(c(0, coafter, nrow(tabl))),
+                 css.tspanner.sep='', css.tspanner = "text-align: left;")
+  putHfig(w, cap, scap='Exclusions', table=TRUE)
     
   ## If needed, display subjects marked as randomized who are marked as
   ## meeting exclusion criteria
   if(length(rnd) && length(nexr)) {
-    cat('\\clearpage\n', file=file, append=TRUE)
-    cap   <- 'Frequency of exclusions for subjects marked as randomized'
-    scap  <- 'Exclusions in randomized subjects'
-    z     <- latex(E, file=file, append=TRUE,
-                   label=sprintf('tab:exclrand%s', subp),
-                   hyperref=if(app && length(Ids))
-                   sprintf('tab:randsubjexcl%s', subp),
-                   rowname=NULL, col.just=c('l', 'r'),
-                   caption=cap, caption.lot=scap, where='htbp')
-    if(app && length(Ids)) {
-      if(length(apptail)) apptail <- paste('.', apptail)
-      cat('\\begin{table}[htbp]\\caption[Subject IDs for randomized subjects with exclusions]{Subject IDs for randomized subjects with exclusions', apptail, '}\\label{tab:randsubjexcl', subp, '}\n\\medskip%\n',
-          sep='', file=appfile, append=TRUE)
-      cat(sprintf('\\hyperref[tab:exclrand%s]{$\\leftarrow$}\n\n', subp),
-          file=appfile, append=TRUE)
+    cap   <- 'Frequency of exclusions for participants marked as randomized'
+    scap  <- 'Exclusions in randomized participants'
+    z <- htmlTable(E, rnames=FALSE, align='lr')
+    putHfig(z, cap, scap=scap, table=TRUE)
+    
+    if(details && length(Ids)) {
+      if(length(detailTail)) detailTail <- paste('.', detailTail)
+      cap <- paste0('Participant IDs for those randomized with exclusions', detailTail)
+      
       le <- length(nexr) - 1
-      for(i in 1 : le) {
-        cat('\\textbf{', latexTranslate(as.character(E$Exclusion[i])),
-            '}:\\\\\n',
-            file=appfile, append=TRUE, sep='')
-        cat('\\parbox{5in}{', Ids[i], '}',
-            if(i < le) '\\\\\n', sep='',
-            file=appfile, append=TRUE)
-      }
+      idtable <- data.frame(Exclusion=E$Exclusion[1 : le], IDs=Ids[1 : le])
+      z <- htmlTable(idtable, align='ll', rnames=FALSE)
+      putHfig(z, cap, scap='IDs for certain excluded randomized participants',
+              table=TRUE,
+              expcoll='Click arrow at left to show participant IDs:')
       if(length(erdata)) {
         erd <- erdata[as.character(interaction(erdata[Idnames]))
-                      %in% Idso, ]
-#        colnames(erd) <- latexTranslate(colnames(erd))
-        z <- function(x) ifelse(is.na(x), '', as.character(x))
-#        for(j in 1 : ncol(erd))
-#          erd[[j]] <- latexTranslate(z(erd[[j]]))
-        z <- latex(erd, file=appfile, append=TRUE, rowname=NULL,
-                   table.env=FALSE, na.blank=TRUE)
+                        %in% Idso, ]
+        z <- htmlTable(erd, rnames=FALSE)
+        putHfig(z, table=TRUE,
+                expcoll='Click arrow at left to see more information about those participands:')
       }
-      cat('\\end{table}\n\n', file=appfile, append=TRUE)
     }
   }
   

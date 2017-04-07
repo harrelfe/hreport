@@ -1,6 +1,6 @@
 #' Accrual Report
 #'
-#' Generate graphics and LaTeX to analyze subject accrual
+#' Generate graphics and HTML to analyze subject accrual
 #'
 #' Typically the left-hand-side variables of the formula, in order, are date of enrollment and date of randomization, with subjects enrolled but not randomized having missing date of randomization.  Given such date variables, this function generates cumulative frequencies optionally with target enrollment/randomization numbers and with time-zooming.  Makes a variety of dot charts by right-hand-side variables:  number of subjects, number of sites, number of subjects per site, fraction of enrolled subjects randomized, number per month, number per site-month.
 #'
@@ -8,8 +8,7 @@
 #' @param data data frame.
 #' @param subset a subsetting epression for the entire analysis.
 #' @param na.action a NA handling function for data frames, default is \code{na.retain}.
-#' @param dateRange \code{Date} or character 2-vector formatted as \code{yyyy-mm-dd}.  Provides the range on the \code{x}-axis (before any zooming).
-#' @param zoom \code{Date} or character 2-vector for an option zoomed-in look at accrual.
+#' @param dateRange \code{Date} or character 2-vector formatted as \code{yyyy-mm-dd}.  Provides the range on the \code{x}-axis.
 #' @param targetN integer vector with target sample sizes over time, same length as \code{targetDate}
 #' @param targetDate \code{Date} or character vector corresponding to \code{targetN}
 #' @param closeDate \code{Date} or characterstring.  Used for randomizations per month and per site-month - contains the dataset closing date to be able to compute the number of dates that a group (country, site, etc.) has been online since randomizating its first subject.
@@ -25,7 +24,7 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' # See test.Rnw in tests directory
+#' # See test.Rmd in inst/tests directory
 #' }
 
 accrualReport <-
@@ -49,13 +48,11 @@ accrualReport <-
   assign(envir = en, "country",   f)
   assign(envir = en, "site",      f)
 
-  file <- sprintf('%s/%s.tex', getgreportOption('texdir'), panel)
-  if(getgreportOption('texwhere') == '') file <- ''
-   else cat('', file=file)
-  
-  ltt <- function(used, name='ltt')
-      dNeedle(sampleFrac(used),
-              name=name, file=file, append=TRUE)
+  ned <- function(used) {
+    sf <- sampleFrac(used)
+    structure(dNeedle(sf), table=attr(sf, 'table'))
+  }
+  extra <- function(x) c(attr(x, 'table'), x)
 
   lhs  <- terms(formula, lhs=1, specials=c('enroll', 'randomize'))
   sl   <- attr(lhs, 'specials')
@@ -88,7 +85,14 @@ accrualReport <-
   pclose     <- length(closeDate) > 0
   
   cr <- pcountry || pregion
-
+  byl <- if(! (pregion | pcountry)) 'site'
+         else
+           if(pregion & pcountry) 'region and country'
+         else
+           if(pregion) 'region'
+         else
+           'country'
+  
   dr <- dateRange
   if(!length(dr))
     dr <- range(pretty(do.call('range', c(as.list(Y), na.rm=TRUE))))
@@ -124,15 +128,19 @@ accrualReport <-
   }
   if(penroll) {
     z <- c(z, sum(! is.na(Y[[enroll]])))
-    k <- c(k, 'Subjects enrolled')
+    k <- c(k, 'Participants enrolled')
   }
 
   if(psite && prandomize) {
-    rdate <- Y[[randomize]]
-    nrand <- sum(! is.na(rdate))
-    persite <- nrand / nsites
-    z <- c(z, c(nrand, g(persite, 1)))
-    k <- c(k, c('Subjects randomized', 'Subjects per site'))
+    rdate    <- Y[[randomize]]
+    nrand    <- sum(! is.na(rdate))
+    persite  <- nrand / nsites
+    nsitesr  <- length(unique(Site[! is.na(rdate)]))
+    persiter <- nrand / nsitesr
+    z <- c(z, c(nrand, g(persite, 1), nsitesr, g(persiter, 1)))
+    k <- c(k, c('Participants randomized', 'Participants per site',
+                'Sites randomizing',
+                'Subjects randomized per randomizing site'))
     ## maxs = for each site the # months since that site first randomized
     ##        a subject (NA if none randomized)
     ## site months is sum of maxs
@@ -157,42 +165,27 @@ accrualReport <-
                       format(closeDate), sep=''),
                 'Site-months for sites randomizing',
                 'Average months since a site first randomized',
-                'Subjects randomized per site per month')
+                'Participants randomized per site per month')
     }
   }
-  if(studynos && length(z)) {
-    z <- data.frame(Number=z, Category=k)
-    u <- latex(z, file=file, append=TRUE, rowname=NULL,
-               col.just=c('r','l'), where='!htbp',
-               label=paste(panel, 'studynos', sep='-'),
-               caption='Study Numbers')
-  }
 
-  ## axis.Date when given a sequence not on Jan 1 boundaries did not
-  ## place axis labels at correct location
-  axisDate <- function(dr) {
-    cdr <- as.character(dr)
-    yr  <- substring(cdr, 1, 4)
-    outer <- as.Date(c(paste(yr[1], '01-01', sep='-'),
-                       paste(as.numeric(yr[2]) + 1, '01-01', sep='-')))
-    dseq <- seq(outer[1], outer[2], by='year')
-    if(length(dseq) > 3) dseq <- dseq[- c(1, length(dseq))]
-    short <- difftime(dr[2], dr[1], units='days') < 550
-    axis(1, at=as.numeric(dseq),
-         labels=if(! short) substring(dseq, 1, 4) else FALSE)
-    dseq <- seq(dr[1], dr[2], by='month')
-    mo   <- as.numeric(substring(dseq, 6, 7))
-    mo   <- c('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
-              'Nov','Dec')[mo]
-    mo   <- ifelse(mo == 'Jan', substring(dseq, 1, 4), mo)
-    axis(1, at=as.numeric(dseq), 
-         labels=if(short) mo else FALSE,
-         tcl = 0.5 * par('tcl'), cex.axis=0.6, las=3)
+  if(penroll && prandomize) {
+    ttr <- as.numeric(difftime(Y[[randomize]], Y[[enroll]], units='days'))
+    z <- c(z, g(mean(ttr, na.rm=TRUE), 1))
+    k <- c(k, 'Mean days from enrollment to randomization')
+    z <- c(z, g(median(ttr, na.rm=TRUE), 1))
+    k <- c(k, 'Median days from enrollment to randomization')
   }
   
-  ## For each date variable in Y, make a cumulative frequency chart and
-  ## optionally zoomed-in chart
+  if(studynos && length(z)) {
+    z <- data.frame(Number=z, Category=k)
+    html(z, file='', align = c('r','l'), border=1,
+         caption='Study Numbers')
+  }
+  
+  ## For each date variable in Y, make a cumulative frequency chart
   ## If target sample size is present, add that as line graph to chart
+
   for(j in 1 : nY) {
     y   <- Y[[j]]
     nam <- namY[j]
@@ -205,67 +198,50 @@ accrualReport <-
       target <- c(0, target)
       dtarget <- c(dr[1], dtarget)
     }
-    lb <- sprintf('%s-cumulative-%s', panel, lab)
-    shortcap <- sprintf("Subjects %s over time", lab)
+
+    shortcap <- sprintf("Participants %s over time", lab)
     cap <- if(length(target))
-             sprintf('.  The solid back line depicts the cumulative frequency.  The thick grayscale line represent targets.', lab) else ''
-    pzoom <- length(zoom) > 0
-    if(pzoom) {
-      zoom <- as.Date(zoom)
-      cap <- paste(cap, sprintf(
-        'The plot is zoomed to show %s--%s in the right panel.  The zoomed interval is depicted with vertical grayscale lines in the left panel',
-        zoom[1], zoom[2]))
+             sprintf('The blue line depicts the cumulative frequency.  The thick grayscale line represent targets.', lab) else ''
+
+    ## Interpolate some points for target just so hover text can have
+    ## more resolution than at polygon bends
+    p <- plot_ly()
+    if(length(target)) {
+      if(length(target) < 15) {
+        dtarget2 <- seq(min(dtarget), max(dtarget), by='week')
+        target   <- round(approx(dtarget, target, xout=dtarget2)$y)
+        dtarget  <- dtarget2
+      }
+      p <- add_lines(p, x=~ dtarget, y=~ target, mode='lines',
+                     line=list(color='lightgray', width=4),
+                     name='Target')
     }
 
-    longcap <- paste(shortcap, cap, '~\\hfill\\lttc', sep = '')
+    tab <- table(y)
+    cumfreq <- unname(cumsum(tab))
+    dates   <- as.Date(names(tab))
+    p <- add_lines(p, x=~dates, y=~cumfreq, mode='lines',
+                   line=list(color='blue', width=1),
+                   name='Actual')
 
-    startPlot(lb, h=h, w=w * (1 + 0.75 * pzoom), lattice=FALSE)
-    par(mfrow=c(1, 1 + pzoom), mar=c(4, 3.5, 2, 1))
-    plot(0, 0, type='n', xlab=sprintf('Date %s', upFirst(lab)),
-         ylab='Cumulative Number',
-         axes=FALSE,
-         xlim=as.numeric(dr),
-         ylim=c(0, if(length(target)) max(length(y), target)
-          else if(lab == 'enrolled' && length(enrollmax)) enrollmax
-          else length(y)))
-    if(length(target)) lines(dtarget, target, lty=1, lwd=5,
-                             col=gray(.8))
-         
-    Ecdf(as.numeric(y), what='f', add=TRUE, lwd=.75)
-    axis(2)
-    axisDate(dr)
-    box(lwd=.75, col=gray(.4))
+    ymax <- if(length(target)) max(length(y), target)
+            else if(lab == 'enrolled' && length(enrollmax)) enrollmax
+            else length(y)
+    p <- plotly::layout(p,
+                        xaxis=list(title=paste('Date', upFirst(lab))),
+                        yaxis=list(title='Cumulative Number',
+                                   range=c(0, ymax)))
     
-    if(pzoom) {
-      abline(v=as.numeric(zoom), col=gray(.85))
-      plot(0, 0, type='n', xlab=sprintf('Date %s', upFirst(lab)),
-         ylab='Cumulative Number',
-         axes=FALSE,
-         xlim=zoom,
-         ylim=c(0, if(length(target)) max(sum(y <= zoom[2], na.rm=TRUE),
-             max(target[dtarget <= zoom[2]])) else
-             sum(y <= zoom[2], na.rm=TRUE)))
-      if(length(target)) lines(dtarget, target, lty=1, lwd=5,
-                               col=gray(.8))
-      Ecdf(as.numeric(y), what='f', add=TRUE, lwd=.75)
-      axis(2)
-      axisDate(zoom)
-      box(lwd=.5, col=gray(.4))
-    }
-
-    endPlot()
-    ltt(switch(lab, enrolled=c(enrolled=sumnna),
-               randomized=c(enrolled=sumnna, randomized=sumnna)), 'lttc')
-    putFig(panel = panel, name = lb, caption = shortcap,
-           longcaption = longcap)
+    needle <- ned(switch(lab,
+                         enrolled   = c(enrolled=sumnna),
+                         randomized = c(enrolled=sumnna, randomized=sumnna)))
+    putHfig(p, cap, scap=shortcap, extra=extra(needle))
   }
 
   ## Extended box plots of time to randomization for randomized subjects
   if(penroll && prandomize && (pregion || pcountry)) {
     x1 <- if(pregion)  X[[region]]
     x2 <- if(pcountry) X[[country]]
-    lb <- sprintf('%s-timetorand', panel)
-    startPlot(lb, h=hb, w=wb, lattice=FALSE)
     y <- as.numeric(difftime(Y[[j]], Y[[enroll]], units='days'))
     use <- TRUE
     coexcl <- 0
@@ -278,47 +254,41 @@ accrualReport <-
         use <- x2 %in% countrieskeep
       }
     }
-    form <- if(length(x1) && length(x2)) x2 ~ y | x1
-     else if(length(x1)) x1 ~ y
-     else if(length(x2)) x2 ~ y
-     else x2 ~ 1
-    print(bwplot(form, panel=panel.bpplot, xlab='Days to Randomization',
-                 subset=use,
-                 scales=list(y='free', rot=c(0,0)),
-                 violin=TRUE,
-                 violin.opts=list(col=adjustcolor('blue', alpha.f=.35),
-                                  border=FALSE)))
-    endPlot()
-    Days <- y
-    form <- if(length(x1)) Days ~ x1
-       else if(length(x2)) Days ~ x2
-       else Days ~ 1
-    popname <- '\\poptabledaysrand'
-    cat(sprintf('\\def%s{\\protect\n', popname), file=file, append=TRUE)
-    rddata <- data.frame(Days)
-    if(length(x1)) rddata$x1 <- x1
-    if(length(x2)) rddata$x2 <- x2
-    rddata <- subset(rddata, ! is.na(Days))
-    S <- summaryM(form, data=rddata, test=FALSE)
-    z <- latex(S, table.env=FALSE, file=file, append=TRUE, prmsd=TRUE,
-               middle.bold=TRUE, center='none', round=1, insert.bottom=FALSE)
-    cat('}\n', file=file, append=TRUE)
-    popsize <- if(length(S$group.freq) > 2) 'full' else 'mini'
-    legend <- attr(z, 'legend')
-    legend <- if(! length(legend)) ''
-     else paste('. ', paste(legend, collapse='\n'), sep='')
+
+#    if(length(x1) > 0 && length(x2) > 0)
+#      warning('at present not implemented for 2 stratification variables')
+
+    xx <- if(length(x1)) x1 else x2
+    f <- if(length(xx)) summaryM(y ~ xx) else summaryM(y ~ 1)
+    options(grType='plotly')
+
+    form <- if(length(x1) && length(x2)) y ~ x1 + x2
+     else if(length(x1)) y ~ x1
+     else if(length(x2)) y ~ x2
+     else y ~ 1
+
+    h <- function(x) {
+      x <- x[! is.na(x)]
+      a <- quantile(x, (1 : 3) / 4)
+      r <- c(mean(x), a, length(x))
+      names(r) <- c('Mean', 'Q<sub>1</sub>', 'Median', 'Q<sub>3</sub>', 'N')
+      r
+    }
+    sym <- c('circle', 'line-ns-open', 'cross', 'line-ns-open')
+    p <- summaryD(form, fun=h, auxvar='N', symbol=sym,
+                  col='blue', height='auto',
+                  xlab='Days to Randomization',
+                  legendgroup=c('Mean', 'Quartiles', 'Median', 'Quartiles'))
 
     excc <- if(coexcl > 0) paste('.', coexcl, 'countries with fewer than',
-                                 minrand, 'randomized subjects are not shown.')
-    else ''
-    putFig(panel=panel, name=lb,
-           longcaption=paste('\\protect\\eboxpopup{Extended box} plots and violin plots showing the distribution of days from enrollment to randomization',
-             excc, '~\\hfill\\lttc', sep=''),
-           caption='Days from enrollment to randomization',
-           tcaption='Days from enrollment to randomization',
-           tlongcaption=paste('Days from enrollment to randomization',
-             legend, sep=''),
-           poptable=popname, popfull=popsize == 'full')
+                                 minrand, 'randomized participants are not shown.')
+            else ''
+
+    putHfig(p, 
+           'Quartiles and mean number of days by', byl, excc,
+           scap = 'Days from enrollment to randomization',
+           extra=extra(needle))
+
   }
   
   ## Chart number of subjects enrolled/randomized/... and other descriptors
@@ -326,25 +296,30 @@ accrualReport <-
   if(nX == 0) return(invisible())
   
   if(psite) {
-    lb <- sprintf('%s-subjpersite', panel)
-
-    startPlot(lb, h=h, w=min(7.75, nY * w), mfrow=c(1, nY),
-              ps=8, lattice=FALSE)
+    P <- vector('list', nY)
     for(j in 1 : nY) {
       y <- X[[site]]
       y[is.na(Y[[j]])] <- NA
       lab  <- ylabs[j]
       clab <- capitalize(lab)
       nn   <- table(table(y))
-      plot(as.numeric(names(nn)), as.numeric(nn),
-           xlab=sprintf('Number of Subjects %s', clab),
-           ylab='Number of Sites')
+      p <- plot_ly(x = as.numeric(names(nn)),
+                   y = as.numeric(nn), mode='markers',
+                   name=clab,
+                   width=850, height=350)
+      P[[j]] <-
+        plotly::layout(p,
+                       xaxis=list(title=paste('Participants', clab),
+                                  zeroline=FALSE),
+                       yaxis=list(title='Number of Sites'))
     }
-    endPlot()
+    p <- plotly::subplot(P, titleY=TRUE, titleX=TRUE,
+                         shareY=TRUE, nrows=1, margin=.05)
     if(nY > 1) lab <- ''
-    putFig(panel=panel, name=lb,
-           longcaption=sprintf('Number of sites having the given number of subjects %s~\\hfill\\lttc', lab),
-           caption=sprintf('Number of sites $\\times$ number of subjects %s', lab))
+    putHfig(p, 
+            'Number of sites having the given number of participants', lab,
+            scap=paste0('Number of sites &times; number of participants', lab),
+            extra=extra(needle))
   }
 
   ## Start with counts of subjects by non-site grouping variables
@@ -353,7 +328,7 @@ accrualReport <-
   dat <- list()
   if(pregion)  dat$x1 <- X[[region]]
   if(pcountry) dat$x2 <- X[[country]]
-  if(psite)    dat$x3 <- X[[site]]   ## new
+  if(psite)    dat$x3 <- X[[site]]
   if(length(ns) > 2) {
     more <- setdiff(ns, c(region, country))
     k <- 2
@@ -371,53 +346,28 @@ accrualReport <-
 
   by <- paste(xlabs[ns], collapse=' and ')
   types <- c('count',
-             if(psite && cr) 'sites',
-             if(penroll    && prandomize) 'fracrand',
+             if(psite && cr)                'sites',
+             if(penroll    && prandomize)   'fracrand',
              if(prandomize && pclose && cr) 'permonth',
-             if(prandomize && pclose && psite && cr)
-              'persitemonth')
+             if(prandomize && pclose && psite && cr) 'persitemonth')
 
   np <- nY * sum(c('count', 'sites') %in% types) +
              sum(c('fracrand', 'permonth', 'persitemonth') %in%
                  types)
-  mf <- if(np == 1) c(1, 1) else if(np == 2) c(1, 2) else c(2, 2)
-  mc <- mf[2]
-  pages <- ceiling(np / prod(mf))
-  width <- if(mf[2] == 1) 3.5 else 7.0
-  ip    <- 0
-  page  <- 0
-  ended <- FALSE
-  scap  <- if(psite) 'Subject and site counts'
-   else 'Subject counts'
-  ## if('fracrand' %in% types) scap <- paste(scap, 'and fraction randomized')
-  cap  <- if(psite) 'Counts of numbers of subjects and numbers of sites'
-   else 'Counts of numbers of subjects'
-  ## if('fracrand' %in% types) cap <- paste(cap, 'and fraction randomized')
-  cap <- paste(cap, '~\\hfill\\lttc', sep='')
+  scap <- if(psite) 'Subject and site counts' else 'Subject counts'
+  cap  <- if(psite) 'Counts of numbers of participants and numbers of sites'
+   else 'Counts of numbers of participants'
   for(type in types) {
     whichy <- if(type %in% c('fracrand', 'permonth', 'persitemonth'))
       randomize else 1 : nY
     if(length(whichy)) for(j in whichy) {
-      ip <- ip + 1
-      if(ip == 1) {
-        page <- page + 1
-        lb <- if(pages == 1) sprintf('%s-count', panel)
-         else sprintf('%s-count-%s', panel, page)
-        ## Compute the number of rows in the current page
-        r <- if(page < pages) mf[1]
-         else if(np %% 4 == 0) 2
-         else ceiling((np %% 4) / 2)
-        height <- min(9, hdot * r)
-        startPlot(lb, h=height, w=width, mfrow=c(r, mf[2]),
-                  ps=if(r == 2) 10 else 8, lattice=FALSE)
-        ended <- FALSE
-      }
       gg <- function(x) length(unique(x[! is.na(x)]))
       
       if(type %in% c('permonth', 'persitemonth')) {
         ## Get country if there, otherwise region
         group <- if(pcountry) as.character(X[[country]])
          else    if(pregion)  as.character(X[[region]])
+
         ## Get more major grouping if present otherwise use above
         mgroup <- if(pregion) as.character(X[[region]]) else group
 
@@ -427,9 +377,11 @@ accrualReport <-
          else 1
         months <- as.numeric(difftime(closeDate, Y[[k]], units='days')) /
           (365.25 / 12)
+
         ## Find maximum months on board for each group
         ## E.g. longest elapsed time within a country
         gmonths <- tapply(months, group, max, na.rm=TRUE)
+
         ## Find the maximum elapsed time over groups within major groups
         ## E.g. longest time for any country within that region
         mmonths <- tapply(months, mgroup, max, na.rm=TRUE)
@@ -452,8 +404,10 @@ accrualReport <-
           ## Starting with only one record per site with that site's
           ## maximum time, sum the elapsed months within each group
           gsitesum <- tapply(maxs, gr[names(maxs)], sum, na.rm=TRUE)
+
           ## Similar over region
           msitesum <- tapply(maxs, mg[gr[names(maxs)]], sum, na.rm=TRUE)
+
           ## Spread to all subjects
           y <- cbind(randomized = ! is.na(Y[[randomize]]),
                      mmonths    = msitesum[mg[group]],
@@ -477,30 +431,30 @@ accrualReport <-
       lab <- ylabs[j]
       clab <- capitalize(lab)
       dat$y <- y
-      fmt <- function(x) format(round(x, 2))
-      if(type %in% c('permonth', 'persitemonth'))
-        summaryD(form, fun=gg, funm=mg, data=dat, vals=TRUE, fmtvals=fmt,
+      p <- if(type %in% c('permonth', 'persitemonth'))
+             summaryD(form, fun=gg, funm=mg, data=dat,
+                      height='auto',
                  xlab=switch(type,
                    permonth     = 'Number Randomized Per Month',
                    persitemonth = 'Number Randomized Per Site Per Month'))
-      else summaryD(form, fun=fun, data=dat, vals=TRUE,
-                    fmtvals = fmt,
+      else summaryD(form, fun=fun, data=dat, height='auto',
                     ylab = if(psite && ! length(ns)) 'Site',
                     xlab=switch(type,
-                      count=sprintf('Number of Subjects %s',      clab),
+                      count=sprintf('Number of Participants %s',      clab),
                       sites=sprintf('Number of Sites That %s',    clab),
-                      fracrand=sprintf('Fraction of Subjects %s', clab)))
-      if(ip == 4) {
-        endPlot()
-        putFig(panel=panel, name=lb, longcaption=cap, caption=scap)
-        ended <- TRUE
-        ip <- 0
+                      fracrand=sprintf('Fraction of Participants %s', clab)))
+
+        cap <- switch(type,
+                      count = paste('Participants', lab),
+                      sites = paste('Sites that', lab),
+                      fracrand = 'Fraction of enrolled participants randomized',
+                      permonth = paste('Participants', lab, 'per month'),
+                      persitemonth = paste('Partipants', lab,
+                                           'per site per month'))
+
+      cap <- paste(cap, 'by', byl)
+      putHfig(p, cap, extra=extra(needle))
       }
-    }
-  }
-  if(!ended) {
-    endPlot()
-    putFig(panel=panel, name=lb, longcaption=cap, caption=scap)
   }
   invisible()
 }
