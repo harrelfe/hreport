@@ -399,12 +399,12 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     
     if(details && length(Ids)) {
       if(length(detailTail)) detailTail <- paste('.', detailTail)
-      cap <- paste0('Participant IDs for those randomized with exclusions', detailTail)
+#      cap <- paste0('Participant IDs for those randomized with exclusions', detailTail)
       
       le <- length(nexr) - 1
       idtable <- data.frame(Exclusion=E$Exclusion[1 : le], IDs=Ids[1 : le])
       z <- htmlTable(idtable, align='ll', rnames=FALSE)
-      putHfig(z, cap, scap='IDs for certain excluded randomized participants',
+      putHfig(z, # cap, scap='IDs for certain excluded randomized participants',
               table=TRUE,
               expcoll='Click arrow at left to show participant IDs:')
       if(length(erdata)) {
@@ -412,7 +412,7 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                         %in% Idso, ]
         z <- htmlTable(erd, rnames=FALSE)
         putHfig(z, table=TRUE,
-                expcoll='Click arrow at left to see more information about those participands:')
+                expcoll='Click arrow at left to see more information about those participants:')
       }
     }
   }

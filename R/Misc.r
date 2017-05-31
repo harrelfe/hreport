@@ -253,7 +253,8 @@ sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
 dNeedle <- function(sf) {
   co <- gethreportOption(c('er.col', 'tx.col'))
   co <- c(co$er.col, co$tx.col)
-  base64::img(pngNeedle(sf, col=co))
+  
+  tobase64image(pngNeedle(sf, col=co))
 }
 
 

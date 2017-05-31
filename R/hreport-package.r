@@ -11,7 +11,6 @@
 #' @importFrom Formula Formula model.part
 #' @importFrom grDevices adjustcolor gray
 #' @importFrom graphics abline axis box grconvertX grconvertY lines par plot plot.new points text
-#' @importFrom base64 img
 #' @importFrom stats as.formula median model.frame qnorm reshape sd terms ecdf
 #' @importFrom htmltools HTML
 #' @docType package
