@@ -75,9 +75,10 @@ dReport <-
   en <- environment(form)
   assign(envir = en, 'id', function(x) x)
 
+  ## Extract needed data from data object
   Y <- if(length(subset)) model.frame(form, data=data, subset=subset,
                                       na.action=na.action)
-   else model.frame(form, data=data, na.action=na.action)
+       else model.frame(form, data=data, na.action=na.action)
   X <- model.part(form, data=Y, rhs=1)
   Y <- model.part(form, data=Y, lhs=1)
   rhs <- terms(form, rhs=1, specials='id')
@@ -86,6 +87,7 @@ dReport <-
   wid <- sr$id
   if(length(wid)) wid <- wid - ncol(Y)
 
+  ## Create manygroups which controls scalling and pagination
   glevels <- if(length(groups)) levels(X[[groups]])
   manygroups <- length(glevels) > 3
   nstrata <- 1
@@ -106,6 +108,7 @@ dReport <-
   ylabs     <- sapply(Y, label)
   ylabs     <- ifelse(ylabs == '', names(Y), ylabs)
 
+  ## Function to take a list of strings and output a string that is a english language collection
   past <- function(x) {
     l <- length(x)
     if(l < 2) x
@@ -113,6 +116,7 @@ dReport <-
     else paste(paste(x[1 : (l - 1)], collapse=', '), x[l], sep=', and ')
   }
 
+  ## Function to find the median, quantials, and standard error of a numeric vector
   quant <- function(y) {
     probs <- c(0.05, 0.125, 0.25, 0.375)
     probs <- sort(c(probs, 1 - probs))
@@ -128,6 +132,7 @@ dReport <-
     c(Median=as.numeric(m), w, se=se, n=length(y))
   }
 
+  ## Function to find the mean and standard error of a numeric vector
   meanse <- function(y) {
     y <- y[! is.na(y)]
     n <- length(y)
@@ -135,8 +140,8 @@ dReport <-
     if(is.logical(y) || all(y %in% c(0., 1.))) {
       p  <- mean(y)
       ci <- binconf(sum(y), n)[1, ]
+      ## Don't trust se=0 at extremes; backsolve from Wilson interval
       if(p == 0. || p == 1.) {
-        ## Don't trust se=0 at extremes; backsolve from Wilson interval
         w  <- diff(ci[c('Lower', 'Upper')])
         se <- 0.5 * w / qnorm(0.975)
       } else se <- sqrt(p * (1. - p) / n)
@@ -146,6 +151,8 @@ dReport <-
     z
   }
 
+  ## Function to find the proportion and lower and upper confidence intervals
+  ## of a binomial vector
   propw <- function(y) {
     y <- y[!is.na(y)]
     n <- length(y)
@@ -161,6 +168,9 @@ dReport <-
               names=c('Proportion', 'Lower', 'Upper', 'se', 'n'))
   }
 
+  ## Function to convert a dataset into a latex table with fancy labels.
+  ## Returns either 'full' or 'mini' based on whether it is a table of the
+  ## full dataset or a subset of the dataset
   latexit <- function(s, what, byx.type, file) {
     at <- attributes(s)
     xv <- at$xnames
@@ -179,7 +189,7 @@ dReport <-
       r <- min(tapply(s$y, s$yvar, function(x) max(abs(x), na.rm=TRUE)),
                na.rm=TRUE)
       dig <- if(r == 0) 2
-       else max(0, min(5, 3 - round(log10(r))))
+             else max(0, min(5, 3 - round(log10(r))))
       
       s <- with(s, summarize(y, s[c('yvar', xv)],
                              g, type='matrix', keepcolnames=TRUE))
@@ -188,7 +198,7 @@ dReport <-
                  byx.cont = c(n='n', Median='Median', Q1='0.250', Q3='0.750'),
                  byx.binary   = c(n='n', Proportion='Proportion'),
                  byx.discrete = c(n='n', Mean='Mean', Lower='Lower',
-                   Upper='Upper'))
+                                  Upper='Upper'))
     cround <- switch(what,
                      byx.cont     = 2:4,
                      byx.binary   = 2,
@@ -220,15 +230,15 @@ dReport <-
                  rgroup=ylab[yvar],
                  colheads=c(upFirst(xv[1]), rep(names(sk), nl)), center=center)
     }
-  else {
-    yvar <- unique(as.character(s$yvar))
-    w <- latex(s[colnames(s) != 'yvar'],
-               table.env=FALSE, file=file, append=TRUE,
-               landscape=FALSE,
-               rowlabel='', rowname=rep('', nrow(s)),
-               rgroup=ylab[yvar], size=szg,
-               colheads=c(upFirst(xv[1]), names(sk)), center=center) 
-  }
+    else {
+      yvar <- unique(as.character(s$yvar))
+      w <- latex(s[colnames(s) != 'yvar'],
+                 table.env=FALSE, file=file, append=TRUE,
+                 landscape=FALSE,
+                 rowlabel='', rowname=rep('', nrow(s)),
+                 rgroup=ylab[yvar], size=szg,
+                 colheads=c(upFirst(xv[1]), names(sk)), center=center) 
+    }
     if(length(xv) == 2) 'full' else 'mini'
   }
 
@@ -252,19 +262,25 @@ dReport <-
     }
   }
 
-  file <- sprintf('%s/%s.tex', getgreportOption('texdir'), panel)
-  if(getgreportOption('texwhere') == '') file <- ''
+  ## Create the path to the HTML file to be created by this function.
+  ## Truncate file if append is false
+  file <- sprintf('%s/%s.html', getgreportOption('htmldir'), panel)
+  if(gethreportOption('htmlwhere') == '') file <- ''
    else if(!append) cat('', file=file)
 
-  cat('%dReport:', deparse(formula), ' what:', what, ' group levels:',
-      paste(glevels, collapse=','), '\n',
+  ## Output HTML header debug information
+  cat('<!--dReport:', deparse(formula), ' what:', what, ' group levels:',
+      paste(glevels, collapse=','), '--!>\n',
       file=file, append=TRUE)
 
+  ## Create manygroup which controls scale and pagination of tables
   if(what == 'box' && ! length(groups) && ncol(X) == 1)
     manygroups <- length(levels(X[[1]])) > 3
 
+  
   szg <- if(manygroups) 'smaller[2]' else 'smaller'
 
+  ## Create panel cross-ref tag and the tex popup function call
   lb <- sprintf('%s-%s', panel, what)
   if(length(subpanel)) lb <- paste(lb, subpanel, sep='-')
   lbn <- gsub('\\.', '', gsub('-', '', lb))
@@ -272,118 +288,106 @@ dReport <-
 
   ## Is first x variable on the x-axis of an x-y plot?
   fx <- (what == 'xy' && ! length(fun)) || substring(what, 1, 3) == 'byx'
+  ## Capture the y variable labels for use later
   a <- if(fx) {
-    if(length(ylabs) < 7)
-      paste(if(what != 'xy') 'for', past(ylabs), 'vs.\\', stratlabs[1])
-     else paste('for', length(ylabs), 'variables vs.\\', stratlabs[1])
-  } else paste('for',
-               if(length(ylabs) < 7) past(ylabs) else
-               paste(length(ylabs), 'variables'))
+         if(length(ylabs) < 7)
+           paste(if(what != 'xy') 'for', past(ylabs), 'vs.\\', stratlabs[1])
+         else paste('for', length(ylabs), 'variables vs.\\', stratlabs[1])
+       } else paste('for',
+                    if(length(ylabs) < 7) past(ylabs)
+                    else paste(length(ylabs), 'variables'))
 
   al <- upFirst(a, alllower=TRUE)
-  al <- latexTranslate(al)
-  
+  al <- htmlTranslate(al)
+
+  ## Create default header for plot
   if(!length(head))
     head <-
       switch(what,
        box          = paste('Extended box',
-         if(violinbox) 'and violin', 'plots', al),
+                            if(violinbox) 'and violin', 'plots', al),
        proportions  = paste('Proportions', al),
-       xy           =  if(length(fun)) 'Statistics' else a,
+       xy           = if(length(fun)) 'Statistics' else a,
        byx.binary   = paste('Proportions and confidence limits', al),
        byx.discrete =
              paste('Means and 0.95 bootstrap percentile confidence limits', al),
        byx.cont     = paste('Medians',
-         switch(byx.type, quantiles='with quantile intervals',
-                violin='with violin (density) plots'),
-         al)      )
+                            switch(byx.type, quantiles='with quantile intervals',
+                                   violin='with violin (density) plots'),
+                            al))
 
+  ## determine the stratifcation variable labels
   sl <- tolower(past(if((what == 'xy' && ! length(fun)) || 
                         what %in% c('byx.binary', 'byx.discrete',
                                     'byx.cont'))
-                     stratlabs[-1] else stratlabs))
+                         stratlabs[-1] else stratlabs))
+
+  ## Create caption from header and stratification variable lables
   cap <- if(!length(sl)) head
   else sprintf('%s stratified by %s', head, sl)
 
   shortcap <- cap
   tcap <- switch(what,
-                 box = paste('Statistics', al),
-                 proportions = paste('Proportions', al),
-                 xy = if(length(fun)) 'Statistics' else a,
-                 byx.binary=paste('Proportions and confidence limits', al),
-                 byx.discrete=paste('Means and 0.95 bootstrap CLs', al),
-                 byx.cont=paste('Medians', al))
+                 box          = paste('Statistics', al),
+                 proportions  = paste('Proportions', al),
+                 xy           = if(length(fun)) 'Statistics' else a,
+                 byx.binary   = paste('Proportions and confidence limits', al),
+                 byx.discrete = paste('Means and 0.95 bootstrap CLs', al),
+                 byx.cont     = paste('Medians', al))
   tcap <- if(length(sl)) sprintf('%s stratified by %s', tcap, sl)
-  
+
+  ## Create latex popup boxes for extended box and quantile intervals substrings
   cap <- gsub('Extended box', '\\\\protect\\\\eboxpopup{Extended box}', cap)
   cap <- gsub('quantile intervals', '\\\\protect\\\\qintpopup{quantile intervals}',
               cap)
+
   
   startPlot(lb, h=h, w=w)
+  ## Create a list of common arguments passed into functions.
   dl <- list(formula=formula.no.id,
              data=data, subset=subset, na.action=na.action,
              outerlabels=outerlabels)
+
+  ## Extract key form popts if it exists. Create default value and reinsert it
+  ## into popts
   key <- popts$key
   if(! length(key) && length(groups)) {
     klines <- list(x=.6, y=-.07, cex=.8,
                    columns=length(glevels), lines=TRUE, points=FALSE)
-    key=switch(what,
-      box = NULL,
-      proportions = list(columns=length(glevels),
-        x=.75, y=-.04, cex=.9,
-        col=trellis.par.get('superpose.symbol')$col, corner=c(0,1)),
-      xy = klines,
-      byx.binary =,
-      byx.discrete =,
-      byx.cont = klines)
+    key <- switch(what,
+                  box          = NULL,
+                  proportions  = list(columns=length(glevels),
+                                     x=.75, y=-.04, cex=.9,
+                                     col=trellis.par.get('superpose.symbol')$col, corner=c(0,1)),
+                  xy           = klines,
+                  byx.binary   =,
+                  byx.discrete =,
+                  byx.cont     = klines)
   }
   if(length(key)) popts$key <- key
 
+  ## Create the plots to output into the HTML file.
   switch(what,
-         box = {
+         box          = {
            sopts$violin      <- violinbox
            sopts$violin.opts <- violinbox.opts
            s <- do.call('bpplotM', c(dl, sopts))
            print(s)
          },
-         proportions = {
+         proportions  = {
            sopts$sort <- summaryPsort
            s <- do.call('summaryP', c(dl, sopts))
-           if(lattice) p <- do.call('plot', c(list(x=s, groups=groups, exclude1=exclude1), popts))
-           else {
-             popts <- if(length(groups) == 1 && groups == tvar)
-               c(popts, list(col  =getgreportOption('tx.col'),
-                             shape=getgreportOption('tx.pch'),
-                             abblen=12))
-             else list(col=getgreportOption('nontx.col'), abblen=12)
-             popts$addlayer <-
-               theme(axis.text.x =
-                       element_text(size = rel(0.8), angle=-45,
-                                    hjust=0, vjust=1),
-                     strip.text.x=element_text(size=rel(0.75), color='blue'),
-                     strip.text.y=element_text(size=rel(0.75), color='blue',
-                       angle=0),
-                     legend.position='bottom')
-             p <- do.call('ggplot', c(list(data=s, groups=groups, exclude1=exclude1), popts))
-             fnvar <- attr(p, 'fnvar')
-             if(length(fnvar)) tail <- paste(tail, ' ', fnvar, '.', sep='')
-             if(length(groups)) p <- p + guides(color=guide_legend(title=''),
-                                                shape=guide_legend(title=''))
-           }
-           presult <- tryCatch(
-             colorFacet(p,
-                        col=adjustcolor('blue', alpha.f=0.18)),
-             error=function(e) list(fail=TRUE)   )
-           if(length(presult$fail) && presult$fail) print(p)
+           p <- do.call('plot', c(list(x=s, groups=groups, exclude1=exclude1), popts))
+           print(p)
          },
-         xy = {
+         xy           = {
            s <- do.call('summaryS', c(dl, list(fun=fun), sopts))
            p <- do.call('plot', c(list(x=s, groups=groups), popts))
            print(p)
          },
-         byx.binary = ,
+         byx.binary   = ,
          byx.discrete =,
-         byx.cont = {
+         byx.cont     = {
            s <- do.call('summaryS', c(dl, list(fun=fun), sopts))
            ylim <- NULL
            if(what %in% c('byx.binary', 'byx.discrete') &&
@@ -405,6 +409,7 @@ dReport <-
            print(p)
          } )
 
+  ## Create HTML popup
   popname <- paste('poptable', lbn, sep='')
   if(stable) cat(sprintf('\\def\\%s{\\protect\n', popname), file=file, append=TRUE)
   poptab <- NULL
@@ -421,19 +426,21 @@ dReport <-
     S <- summaryM(formula.no.id, data=data, subset=subset, na.action=na.action,
                   test=FALSE, groups=groups, continuous=continuous)
     if(stable) {
-     z <- latex(S, table.env=FALSE, file=file, append=TRUE, prmsd=TRUE,
-                npct='both', exclude1=exclude1, middle.bold=TRUE, center=center,
-                round='auto', insert.bottom=FALSE, size=szg,
-                landscape=manygroups)
-     poptab <- if(length(S$group.freq) > 3) 'full' else 'mini'
-     legend <- attr(z, 'legend')
-     legend <- if(! length(legend)) ''
-     else paste('. ', paste(legend, collapse='\n'), sep='')
-     nstrata <- attr(z, 'nstrata')
+      z <- latex(S, table.env=FALSE, file=file, append=TRUE, prmsd=TRUE,
+                 npct='both', exclude1=exclude1, middle.bold=TRUE, center=center,
+                 round='auto', insert.bottom=FALSE, size=szg,
+                 landscape=manygroups)
+      poptab <- if(length(S$group.freq) > 3) 'full' else 'mini'
+      legend <- attr(z, 'legend')
+      legend <- if(! length(legend)) ''
+                else paste('. ', paste(legend, collapse='\n'), sep='')
+      nstrata <- attr(z, 'nstrata')
     }
   }
   if(stable) cat('}\n', file=file, append=TRUE)
 
+  ## Create and append observation numbers to caption
+  ## Create and append tail if given
   nobs <- Nobs$nobs
   r <- range(nobs)
   nn <- if(r[1] == r[2]) r[1] else paste(r[1], 'to', r[2])
