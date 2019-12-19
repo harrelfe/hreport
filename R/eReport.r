@@ -34,6 +34,8 @@ eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   if(length(subpanel) && grepl('[^a-zA-Z-]', subpanel))
     stop('subpanel must contain only A-Z a-z -')
 
+  popts <- c(popts, list(colors=gethreportOption('tx.col')))
+
   smaller2 <- markupSpecs$html$smaller2
   
   form <- Formula(formula)
@@ -100,12 +102,16 @@ eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                    list(event=event, group=group),
                  g, stat.name=NULL)
 
+  popts$col    <- popts$colors
+  popts$colors <- NULL
   p <- with(z,
-            dotchartpl(.num / .denom, major=major, minor=event,
-                       group=group, num=.num, denom=.denom,
-                       refgroup=refgroup, conf.int=conf.int,
-                       minkeep=minincidence) )
-
+            do.call('dotchartpl', c(list(.num / .denom, major=major,
+                                         minor=event,
+                                         group=group, num=.num, denom=.denom,
+                                         refgroup=refgroup, conf.int=conf.int,
+                                         minkeep=minincidence),
+                                    popts)))
+  
   rem <- attr(p, 'levelsRemoved')
   small <- length(rem)
   
@@ -132,7 +138,7 @@ eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
 
   N[1] <- N[2]    # assume used only randomized subjects
                   # N[2] out of original N[1] subjects
-
-  putHfig(p, head, scap=shortcap, extra=extra(ned(N)))
-  invisible()
+  
+  putHcap(head, scap=shortcap, extra=extra(ned(N)))
+  p
 }

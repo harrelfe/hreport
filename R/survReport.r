@@ -10,8 +10,6 @@
 #' @param what \code{"S"} (the default) to plot survival functions or \code{"1-S"} to plot cumulative incidence functions.  If any of the survival time objects on the left hand side are competing risk objects, the default is \code{"1-S"} and you may not change it.
 #' @param conf character. See \code{\link[rms]{survplot.npsurv}}.
 #' @param cause character vector or list.  If a vector, every \code{Surv} term on the left hand side of \code{formula} will have cumulative incidence plotted for all causes that appear in \code{cause}.  If a list, the list elements must correspond to the \code{Surv} terms in order, and specify which causes to display from the corresponding \code{Surv} object.  When \code{cause} is a list and one of its elements contains more than one character string, or when \code{cause} is a vector and for one \code{Surv} object it matches multiple causes, \code{survReport} produces more plots than there are \code{Surv} objects.
-#' @param panel character string.  Name of panel, which goes into file base names and figure labels for cross-referencing.
-#' @param subpanel character string.  If calling \code{dReport} more than once for the same type of chart (categorical or continuous), specify \code{subpanel} to distinguish the multiple calls.  In that case, \code{-subpanel} will be appended to \code{panel} when creating figure labels and cross-references.
 #' @param head character string.  Specifies initial text in the figure caption, otherwise a default is used.
 #' @param tail optional character string.  Specifies final text in the figure caption, e.g., what might have been put in a footnote in an ordinary text page.  This appears just before any needles.
 #' @param h numeric. Height of plots.
@@ -84,7 +82,7 @@ survReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   }
 
   kmlab <- if(what == 'S') 'Kaplan-Meier estimates'
-           else 'One minus Kaplan-Meier estimates'
+           else 'Kaplan-Meier cumulative incidence estimates'
 
   past <- function(x) {
     l <- length(x)

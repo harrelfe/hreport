@@ -54,6 +54,8 @@ accrualReport <-
   }
   extra <- function(x) c(attr(x, 'table'), x)
 
+  mdchunk <- markupSpecs$html$mdchunk   # in Hmisc
+
   lhs  <- terms(formula, lhs=1, specials=c('enroll', 'randomize'))
   sl   <- attr(lhs, 'specials')
   rhs  <- terms(formula, rhs=1, specials=c('region', 'country', 'site'))
@@ -185,7 +187,12 @@ accrualReport <-
   
   ## For each date variable in Y, make a cumulative frequency chart
   ## If target sample size is present, add that as line graph to chart
+  options(grType='plotly')
 
+  R  <- list()
+  Pl <- list()
+  nP <- 0
+  
   for(j in 1 : nY) {
     y   <- Y[[j]]
     nam <- namY[j]
@@ -235,7 +242,9 @@ accrualReport <-
     needle <- ned(switch(lab,
                          enrolled   = c(enrolled=sumnna),
                          randomized = c(enrolled=sumnna, randomized=sumnna)))
-    putHfig(p, cap, scap=shortcap, extra=extra(needle))
+    nP <- nP + 1
+    R[[nP]] <- putHcap(cap, scap=shortcap, extra=extra(needle), file=FALSE)
+    Pl[[nP]] <- p
   }
 
   ## Extended box plots of time to randomization for randomized subjects
@@ -260,7 +269,6 @@ accrualReport <-
 
     xx <- if(length(x1)) x1 else x2
     f <- if(length(xx)) summaryM(y ~ xx) else summaryM(y ~ 1)
-    options(grType='plotly')
 
     form <- if(length(x1) && length(x2)) y ~ x1 + x2
      else if(length(x1)) y ~ x1
@@ -284,17 +292,21 @@ accrualReport <-
                                  minrand, 'randomized participants are not shown.')
             else ''
 
-    putHfig(p, 
-           'Quartiles and mean number of days by', byl, excc,
-           scap = 'Days from enrollment to randomization',
-           extra=extra(needle))
-
+    nP <- nP + 1
+    R[[nP]] <- putHcap(
+      'Quartiles and mean number of days by', byl, excc,
+      scap = 'Days from enrollment to randomization',
+      extra=extra(needle), file=FALSE)
+    Pl[[nP]] <- p
   }
-  
+
   ## Chart number of subjects enrolled/randomized/... and other descriptors
   ## by right-hand variables
-  if(nX == 0) return(invisible())
-  
+ if(nX == 0) {
+   mdchunk(R, Pl)
+   return(invisible())
+   }
+
   if(psite) {
     P <- vector('list', nY)
     for(j in 1 : nY) {
@@ -316,10 +328,12 @@ accrualReport <-
     p <- plotly::subplot(P, titleY=TRUE, titleX=TRUE,
                          shareY=TRUE, nrows=1, margin=.05)
     if(nY > 1) lab <- ''
-    putHfig(p, 
-            'Number of sites having the given number of participants', lab,
-            scap=paste0('Number of sites &times; number of participants', lab),
-            extra=extra(needle))
+    nP <- nP + 1
+    R[[nP]] <- putHcap(
+      'Number of sites having the given number of participants', lab,
+      scap=paste0('Number of sites &times; number of participants', lab),
+      extra=extra(needle), file=FALSE)
+    Pl[[nP]] <- p
   }
 
   ## Start with counts of subjects by non-site grouping variables
@@ -453,8 +467,11 @@ accrualReport <-
                                            'per site per month'))
 
       cap <- paste(cap, 'by', byl)
-      putHfig(p, cap, extra=extra(needle))
+      nP <- nP + 1
+      R[[nP]] <- putHcap(cap, extra=extra(needle), file=FALSE)
+      Pl[[nP]] <- p
       }
   }
+  mdchunk(R, Pl)
   invisible()
 }

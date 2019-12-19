@@ -3,32 +3,42 @@ title: "DSMB Report for EXAMPLE Trial"
 author: "FE Harrell"
 date: '`r Sys.Date()`'
 output:
-  html_notebook:
-    code_folding: hide
-    toc: yes
-    toc_float:
-      collapsed: yes
-  htmul_document:
+  html_document:
     toc: yes
     toc_depth: 3
-    toc_float:
-      collapsed: yes
+    number_sections: false
+    toc_float: 
+      collapsed: false
+    code_folding: hide
+    theme: cerulean
+css: stewarttoc.css
+description: "Example of an open meeting DSMB report"
 ---
+
 ```{r setup,results='hide'}
 require(Hmisc)
+knitrSet(lang='markdown', fig.path='figure/')
+options(prType='html')
 require(plotly)
 require(htmlTable)
+tt <- function() {
 source('~/R/hreport/R/Misc.r')
 source('~/R/hreport/R/accrualReport.r')
 source('~/R/hreport/R/exReport.r')
 source('~/R/hreport/R/eReport.r')
+source('~/R/hreport/R/dReport.r')
+}
+tt()
 mu <- markupSpecs$html   # in Hmisc - HTML markups
 frac <- mu$frac
 ```
 ```{r setup2}
 mu$styles()              # define HTML styles, functions
 ```
-<!-- May need to run the following system commands one time:
+
+`r hidingTOC(buttonLabel="Outline")`
+<!--
+May need to run the following system commands one time:
 cd /usr/local/bin
 sudo ln -s /usr/lib/rstudio/bin/pandoc/pandoc-citeproc
 -->
@@ -73,8 +83,6 @@ denom <- c(enrolled=nrow(d) * 1.1,
 sethreportOption(tx.var='treat', denom=denom)
 ## Initialize file to hold appendix information such as subject IDs
 ## so all later writing to this file can use append=TRUE
-appfile <- gethreportOption('appfile')
-cat('', file=appfile)
 ``` 
 
 # Introduction
@@ -109,22 +117,6 @@ d4 <- dNeedle(c(1,2,3,1)/4)
 | `r d2` | Analysis uses `r frac(3,4)` of enrolled subjects, and all randomized subjects|
 | `r d3` | Analysis uses `r frac(1,4)` of enrolled subjects, and `r frac(1,2)` of randomized subjects|
 | `r d4` | Same as previous example, and in addition the analysis utilized treatment assignment, analyzing `r frac(3,4)` of those randomized to A and `r frac(1,4)` of those randomized to B|
-
-# Extended Box Plots
-For depicting distributions of continuous variables, many of the
-following displays use extended box plots, also called
-box--percentile plots.  A prototype, with explanations, is below.
-```{r bpplt}
-bpplt()
-```
-
-## Dot Charts
-Dot charts are used to present stratified proportions.  In these
-charts the area of the symbols is proportional to the square root of
-the denominator.  The legend shows representative denominators and
-their corresponding symbol areas, using denominators that actually
-occurred in the data and extended from the minimum observed to the
-maximum observed sample size.???
 
 
 ## Survival Curves
@@ -184,6 +176,61 @@ if(FALSE) exReport(~ pending(pend) + e1 + e2 + e3 + e4 + e5 + e6 + e7 +
          erdata=erd,
          whenapp=c(e4='CCTA done'), data=d, #hc=3.75, h=4,
          sort=FALSE, app=FALSE)
+```
+
+# Baseline Variables
+```{r baseline,results='asis'}
+n <- 100
+f <- function(na=FALSE) {
+  x <- sample(c('N', 'Y'), n, TRUE)
+  if(na) x[runif(100) < .1] <- NA
+  x
+}
+set.seed(1)
+d <- data.frame(x1=f(), x2=f(), x3=f(), x4=f(), x5=f(), x6=f(),
+                x7=f(TRUE),
+                age=rnorm(n, 50, 10),
+                sbp=rnorm(n, 120, 7),
+                dbp=rnorm(n,  80, 6),
+                days=sample(1:n, n, TRUE),
+                race=sample(c('Asian', 'Black/AA', 'White'), n, TRUE),
+                sex=sample(c('Female', 'Male'), n, TRUE),
+                treat=sample(c('A', 'B'), n, TRUE),
+                region=sample(c('North America','Europe'), n, TRUE),
+                meda=sample(0:1, n, TRUE), medb=sample(0:1, n, TRUE),
+                subjid=1:n)
+d$days[1] <- NA
+d <- upData(d, labels=c(x1='MI', x2='Stroke', x3='AKI', x4='Migraines',
+                 x5='Pregnant', x6='Other event', x7='MD withdrawal',
+                 race='Race', sex='Sex', treat='treatment',
+                 sbp='Systolic BP', days='Time Since Randomization',
+                 meda='Medication A', medb='Medication B'),
+            units=c(sbp='mmHg', dbp='mmHg', age='years', days='days'),
+            print=FALSE)
+dasna <- subset(d, region=='North America')
+# with(dasna, table(race, treat))
+den <- c(enrolled=n + 50, randomized=n, table(d$treat))
+sethreportOption(denom=den, tx.var='treat')
+           
+dReport(race + sex +
+        ynbind(x1, x2, x3, x4, x5, x6, x7, label='Exclusions') ~ 1,
+        head='Overall frequencies of categorical demographic variables and exclusions',
+        data=d, w=4, h=4.5)
+
+dReport(race + sex ~ treat,
+        groups='treat',
+        head='Categorical demographic variables',
+        data=d, w=4, h=4.5)
+
+
+dReport(race + sex ~ region, data=addMarginal(d, region),
+        w=4.75, h=3.75,
+        head='Demographics')
+
+dReport(race + sex ~ region + treat, data=addMarginal(d, region),
+        groups='treat',
+        w=4.75, h=3.75,
+        head='Demographics')
 ```
 
 # Adverse Events
