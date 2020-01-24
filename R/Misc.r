@@ -88,6 +88,8 @@ mfrowSuggest <- function(n, small=FALSE) {
 #'	\item{\code{defs}:}{fully qualified file name to which to write LaTeX macro definitions such as poptables}
 #'  \item{\code{appfile}:}{name of temporary file to which to write appendix information such as subject ID listings.  Defaults to \code{tempfile()}.}
 #' }
+#' @export
+#' @importFrom grDevices adjustcolor
 sethreportOption <- function(...) {
   default <- getOption('hreport')
   opts <- list(...)

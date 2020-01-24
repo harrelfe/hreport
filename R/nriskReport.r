@@ -18,6 +18,7 @@
 #' @param append logical.  Set to \code{FALSE} to start a new panel
 #' @param popts list specifying extra arguments to pass to \code{Ecdf}.  A common use is for example \code{popts=list(layout=c(columns,rows))} to be used in rendering \code{lattice} plots.  \code{key} and \code{panel} are also frequently used.
 #' @export
+#' @importFrom grDevices gray
 #' @examples
 #' # See test.Rnw in tests directory
 

@@ -22,6 +22,7 @@
 #' @param wb numeric.  Weight of extended box plots.
 #' @param hdot numeric.  Height of dot charts in inches.
 #' @export
+#' @importFrom Formula Formula
 #' @examples
 #' \dontrun{
 #' # See test.Rmd in inst/tests directory
@@ -34,7 +35,7 @@ accrualReport <-
            minrand=10, panel = 'accrual',
            h=2.5, w=3.75, hb=5, wb=5, hdot=3.5)
 {
-  formula <- Formula(formula)
+  formula <- Formula::Formula(formula)
   
   if(grepl('[^a-zA-Z-]', panel))
     stop('panel must contain only A-Z a-z -')

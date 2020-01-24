@@ -20,6 +20,7 @@
 #' @param w width of graph
 #' @author Frank Harrell
 #' @export
+#' @importFrom Formula Formula
 #' @examples
 #' # See test.Rnw in tests directory
 
@@ -36,7 +37,7 @@ eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
 
   smaller2 <- markupSpecs$html$smaller2
   
-  form <- Formula(formula)
+  form <- Formula::Formula(formula)
   environment(form) <- new.env(parent = environment(form))
   en <- environment(form)
   assign(envir = en, 'id', function(x) x)
