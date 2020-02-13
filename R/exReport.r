@@ -59,7 +59,7 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                                       na.action=na.action)
    else model.frame(formula, data=data, na.action=na.action)
   Terms <- terms(formula, specials=c('pending', 'randomized', 'cond', 'id'))
-  s <- attr(Terms, 'special')
+  s <- attr(Terms, 'specials')
   sp  <- s$pending
   sr  <- s$randomized
   sc  <- s$cond
