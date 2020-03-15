@@ -11,7 +11,6 @@ output:
       collapsed: false
     code_folding: hide
     theme: cerulean
-css: stewarttoc.css
 description: "Example of an open meeting DSMB report"
 ---
 
@@ -273,7 +272,6 @@ dReport(meda + medb ~ days + treat, what='xy',
 # make sure nriskReport doesn't get fooled by duplicate data
 d2 <- rbind(d, d)
 require(data.table)
-#gg <- function()
 
 nriskReport(days ~ region + id(subjid),
             data=addMarginal(d2, region),
