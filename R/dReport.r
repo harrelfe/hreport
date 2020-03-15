@@ -23,15 +23,17 @@
 #' @param h numeric.  Height of plot, in inches
 #' @param w numeric.  Width of plot
 #' @param \dots. Passed to \code{summaryP} or \code{bpplotM}
-#' @param sopts list specifying extra arguments to pass to \code{histboxpM}, \code{summaryP}, or \code{summaryS}
+#' @param sopts list specifying extra arguments to pass to \code{histboxpM}, \code{ecdfpM}, \code{summaryP}, or \code{summaryS}
 #' @param popts list specifying extra arguments to pass to a plot method.
 #' @export
+#' @importFrom Formula Formula
+#' @importFrom grDevices adjustcolor
 #' @examples
 #' # See test.Rnw in tests directory
 
 dReport <-
   function(formula, groups=NULL,
-           what=c('hist', 'proportions', 'xy', 'byx'),
+           what=c('hist', 'ecdf', 'proportions', 'xy', 'byx'),
            byx.type=c('hist', 'quantiles', 'violin'),
            violinbox=TRUE,
            violinbox.opts=list(col=adjustcolor('blue', alpha.f=.25),
@@ -40,7 +42,7 @@ dReport <-
            stable=TRUE,
            fun=NULL, data=NULL, subset=NULL, na.action=na.retain,
            head=NULL, tail=NULL,
-           continuous=10, h=5.5, w=5.5,
+           continuous=10, h=NULL, w=NULL,
            sopts=NULL, popts=NULL)
 {
   mwhat    <- missing(what)
@@ -58,27 +60,20 @@ dReport <-
   Nobs <- nobsY(formula, group=tvar,
                 data=data, subset=subset, na.action=na.action)
   formula.no.id <- Nobs$formula   ## removes id()
-  form <- Formula(formula)
+  form <- Formula::Formula(formula)
   environment(form) <- new.env(parent = environment(form))
   en <- environment(form)
   assign(envir = en, 'id', function(x) x)
 
-<<<<<<< HEAD
   ## if argument 'subset' is present then
   ## Create a dataset that is a subset of the dataset 'data' using the argument 'subset'.
   ## Otherwise Create a dataset from the dataset 'data' using the formula 'form' from the
   ## argument formula
   Y <- if(length(subset)) model.frame(form, data=data, subset=subset,
                                       na.action=na.action)
-   else model.frame(form, data=data, na.action=na.action)
+       else model.frame(form, data=data, na.action=na.action)
   ## Split the dataset 'Y' in the left and right hand sides of the
   ## formula
-=======
-  ## Extract needed data from data object
-  Y <- if(length(subset)) model.frame(form, data=data, subset=subset,
-                                      na.action=na.action)
-       else model.frame(form, data=data, na.action=na.action)
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   X <- model.part(form, data=Y, rhs=1)
   Y <- model.part(form, data=Y, lhs=1)
 
@@ -90,12 +85,8 @@ dReport <-
   wid <- sr$id
   if(length(wid)) wid <- wid - ncol(Y)
 
-<<<<<<< HEAD
   ## If argument 'groups' (Defines name of grouping term in formula) has
   ## length then get the levels of the grouping term.
-=======
-  ## Create manygroups which controls scalling and pagination
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   glevels <- if(length(groups)) levels(X[[groups]])
   ## If there are more the 3 levels in variable 'glevels' then
   ## set variable 'manygroups' to 'TRUE'
@@ -135,11 +126,7 @@ dReport <-
   ## in variable 'Y'
   ylabs     <- ifelse(ylabs == '', names(Y), ylabs)
 
-<<<<<<< HEAD
   ## paste together a comma seperated lexical list
-=======
-  ## Function to take a list of strings and output a string that is a english language collection
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   past <- function(x) {
     l <- length(x)
     if(l < 2) x
@@ -147,14 +134,10 @@ dReport <-
     else paste(paste(x[1 : (l - 1)], collapse=', '), x[l], sep=', and ')
   }
 
-<<<<<<< HEAD
   ## Extract the 0.05, 0.125, 0.25, 0.375, 0.625, 0.75, 0.875, and 0.95
   ## quantiles, the median, standard deviation, and length from the given vector.
   ## if less then 3 elements in the given vector then return the meadian
   ## 9 NA's and the length of the given vector.
-=======
-  ## Function to find the median, quantials, and standard error of a numeric vector
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   quant <- function(y) {
     probs <- c(0.05, 0.125, 0.25, 0.375)
     probs <- sort(c(probs, 1 - probs))
@@ -170,12 +153,8 @@ dReport <-
     c(Median=as.numeric(m), w, se=se, n=length(y))
   }
 
-<<<<<<< HEAD
   ## Get the mean and standard deviation and confidence interval
   ## for the given vector
-=======
-  ## Function to find the mean and standard error of a numeric vector
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   meanse <- function(y) {
     y <- y[! is.na(y)]
     n <- length(y)
@@ -183,8 +162,8 @@ dReport <-
     if(is.logical(y) || all(y %in% c(0., 1.))) {
       p  <- mean(y)
       ci <- binconf(sum(y), n)[1, ]
-      ## Don't trust se=0 at extremes; backsolve from Wilson interval
       if(p == 0. || p == 1.) {
+        ## Don't trust se=0 at extremes; backsolve from Wilson interval
         w  <- diff(ci[c('Lower', 'Upper')])
         se <- 0.5 * w / qnorm(0.975)
       } else se <- sqrt(p * (1. - p) / n)
@@ -195,13 +174,8 @@ dReport <-
     z
   }
 
-<<<<<<< HEAD
   ## Find the proportion, lower and upper confidence intervals, the
   ## standard deviation and length of the given vector.
-=======
-  ## Function to find the proportion and lower and upper confidence intervals
-  ## of a binomial vector
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   propw <- function(y) {
     y <- y[!is.na(y)]
     n <- length(y)
@@ -217,86 +191,9 @@ dReport <-
               names=c('Proportion', 'Lower', 'Upper', 'se', 'n'))
   }
 
-<<<<<<< HEAD
   ## If argument 'what' is the value 'byx' then determine which summary function to use
   ## when summarizing a variable.  Also determine final value of
   ## 'what' argument.
-=======
-  ## Function to convert a dataset into a latex table with fancy labels.
-  ## Returns either 'full' or 'mini' based on whether it is a table of the
-  ## full dataset or a subset of the dataset
-  latexit <- function(s, what, byx.type, file) {
-    at <- attributes(s)
-    xv <- at$xnames
-    ## panel function did the work:
-    if(what == 'byx.cont' && byx.type == 'violin') {
-      g <- function(y) {
-        y <- y[! is.na(y)]
-        if(length(y) < 3) 
-          return(c(n=length(y), Median=median(y), Q1=NA, Q3=NA))
-        w <- hdquantile(y, c(0.50, 0.25, 0.75))
-        r <- c(length(y), w)
-        names(r) <- c('n', 'Median', '0.250', '0.750')
-        r
-      }
-      ## Attempt to find a good number of digits to right of .
-      r <- min(tapply(s$y, s$yvar, function(x) max(abs(x), na.rm=TRUE)),
-               na.rm=TRUE)
-      dig <- if(r == 0) 2
-             else max(0, min(5, 3 - round(log10(r))))
-      
-      s <- with(s, summarize(y, s[c('yvar', xv)],
-                             g, type='matrix', keepcolnames=TRUE))
-    } else dig <- 2
-    sk <- switch(what,
-                 byx.cont = c(n='n', Median='Median', Q1='0.250', Q3='0.750'),
-                 byx.binary   = c(n='n', Proportion='Proportion'),
-                 byx.discrete = c(n='n', Mean='Mean', Lower='Lower',
-                                  Upper='Upper'))
-    cround <- switch(what,
-                     byx.cont     = 2:4,
-                     byx.binary   = 2,
-                     byx.discrete = 2:4)
-
-    s$y <- s$y[, sk, drop=FALSE]
- 
-    s$y[, cround] <- round(s$y[, cround], dig)
-    colnames(s$y) <- names(sk)
-    yv <- unique(as.character(s$yvar))
-    ny <- length(yv)
-    ylab <- character(ny)
-    names(ylab) <- yv
-    for(v in yv) ylab[v] <-
-      labelLatex(label=upFirst(at$ylabels[v]), units=at$yunits[v], hfill=TRUE)
-    
-    if(length(xv) == 2) {
-      r <- reshape(s, timevar=xv[2], direction='wide', idvar=c('yvar', xv[1]))
-      class(r) <- 'data.frame'
-      lev <- levels(s[[xv[2]]])
-      nl <- length(lev)
-      yvar <- unique(as.character(r$yvar))
-      w <- latex(r[colnames(r) != 'yvar'],
-                 table.env=FALSE, file=file, append=TRUE, rowlabel='',
-                 landscape=FALSE, size=szg,
-                 rowname=rep('', nrow(r)),
-                 cgroup=c('', lev),
-                 n.cgroup=c(1, rep(ncol(s$y), nl)),
-                 rgroup=ylab[yvar],
-                 colheads=c(upFirst(xv[1]), rep(names(sk), nl)), center=center)
-    }
-    else {
-      yvar <- unique(as.character(s$yvar))
-      w <- latex(s[colnames(s) != 'yvar'],
-                 table.env=FALSE, file=file, append=TRUE,
-                 landscape=FALSE,
-                 rowlabel='', rowname=rep('', nrow(s)),
-                 rgroup=ylab[yvar], size=szg,
-                 colheads=c(upFirst(xv[1]), names(sk)), center=center) 
-    }
-    if(length(xv) == 2) 'full' else 'mini'
-  }
-
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   if(what == 'byx') {
     if(length(fun)) stop('may not specify fun= when what="byx"')
     ## Function to determine the number of distinct numeric values
@@ -338,7 +235,6 @@ dReport <-
     }
   }
 
-<<<<<<< HEAD
   ## If argument 'what' (main control variable) is equal to value 'hist'
   ## and argument 'groups' (Defines name of grouping term in formula) is
   ## not specified and dataset 'X' has 1 column then set variable 'manygroups'
@@ -367,46 +263,9 @@ dReport <-
   } else paste('for',
                if(length(ylabs) < 7) past(ylabs) else
                paste(length(ylabs), 'variables'))
-=======
-  ## Create the path to the HTML file to be created by this function.
-  ## Truncate file if append is false
-  file <- sprintf('%s/%s.html', getgreportOption('htmldir'), panel)
-  if(gethreportOption('htmlwhere') == '') file <- ''
-   else if(!append) cat('', file=file)
-
-  ## Output HTML header debug information
-  cat('<!--dReport:', deparse(formula), ' what:', what, ' group levels:',
-      paste(glevels, collapse=','), '--!>\n',
-      file=file, append=TRUE)
-
-  ## Create manygroup which controls scale and pagination of tables
-  if(what == 'box' && ! length(groups) && ncol(X) == 1)
-    manygroups <- length(levels(X[[1]])) > 3
-
-  
-  szg <- if(manygroups) 'smaller[2]' else 'smaller'
-
-  ## Create panel cross-ref tag and the tex popup function call
-  lb <- sprintf('%s-%s', panel, what)
-  if(length(subpanel)) lb <- paste(lb, subpanel, sep='-')
-  lbn <- gsub('\\.', '', gsub('-', '', lb))
-  lttpop <- paste('ltt', lbn, sep='')
-
-  ## Is first x variable on the x-axis of an x-y plot?
-  fx <- (what == 'xy' && ! length(fun)) || substring(what, 1, 3) == 'byx'
-  ## Capture the y variable labels for use later
-  a <- if(fx) {
-         if(length(ylabs) < 7)
-           paste(if(what != 'xy') 'for', past(ylabs), 'vs.\\', stratlabs[1])
-         else paste('for', length(ylabs), 'variables vs.\\', stratlabs[1])
-       } else paste('for',
-                    if(length(ylabs) < 7) past(ylabs)
-                    else paste(length(ylabs), 'variables'))
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
 
   ## Capitalize the base part of the title
   al <- upFirst(a, alllower=TRUE)
-<<<<<<< HEAD
 
   ## Create the default title if the argumnt 'head' (optional header
   ## text to display) is not speficied.
@@ -414,28 +273,18 @@ dReport <-
     head <-
       switch(what,
        hist         = paste('Histograms', al),
-=======
-  al <- htmlTranslate(al)
-
-  ## Create default header for plot
-  if(!length(head))
-    head <-
-      switch(what,
-       box          = paste('Extended box',
-                            if(violinbox) 'and violin', 'plots', al),
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
+       ecdf         = paste('Empirical cumultive distribution functions', al),      
        proportions  = paste('Proportions', al),
        xy           = if(length(fun)) 'Statistics' else a,
        byx.binary   = paste('Proportions and confidence limits', al),
        byx.discrete =
              paste('Means and 0.95 bootstrap percentile confidence limits', al),
        byx.cont     = paste('Medians',
-<<<<<<< HEAD
                             switch(byx.type,
                                    hist='with histograms',
                                    quantiles='with quantile intervals',
                                    violin='with violin (density) plots'),
-         al)      )
+                            al))
 
   ## Create statification label by creating a english language list of
   ## stratification variables labels except for the first element if the argument
@@ -447,33 +296,19 @@ dReport <-
   sl <- tolower(past(if((what == 'xy' && ! length(fun)) || 
                         what %in% c('byx.binary', 'byx.discrete',
                                     'byx.cont'))
-                     stratlabs[-1] else stratlabs))
+                       stratlabs[-1] else stratlabs))
 
   ## create short caption for graphic if length of variable 'sl' is 0 then
   ## use argument 'head' (initial text in the figure caption) as the
   ## begining of the caption variable 'cap'.
   ## Otherwise join argument 'head' and variable 'sl' with the string value
   ## ' stratified by '.
-=======
-                            switch(byx.type, quantiles='with quantile intervals',
-                                   violin='with violin (density) plots'),
-                            al))
-
-  ## determine the stratifcation variable labels
-  sl <- tolower(past(if((what == 'xy' && ! length(fun)) || 
-                        what %in% c('byx.binary', 'byx.discrete',
-                                    'byx.cont'))
-                         stratlabs[-1] else stratlabs))
-
-  ## Create caption from header and stratification variable lables
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   cap <- if(!length(sl)) head
   else sprintf('%s stratified by %s', head, sl)
 
   ## Save the current value of the variable 'cap' (graphic caption) in the variable
   ## 'shortcap'
   shortcap <- cap
-<<<<<<< HEAD
 
   ## Make a list containing the forumula with no id, the data, the subset,
   ## na.action for later use in summarizing functions.
@@ -482,76 +317,30 @@ dReport <-
 
   ## Generate the plot of the object based on the value of the argument 'what'
   ## (main controlling variable for dReport)
-=======
-  tcap <- switch(what,
-                 box          = paste('Statistics', al),
-                 proportions  = paste('Proportions', al),
-                 xy           = if(length(fun)) 'Statistics' else a,
-                 byx.binary   = paste('Proportions and confidence limits', al),
-                 byx.discrete = paste('Means and 0.95 bootstrap CLs', al),
-                 byx.cont     = paste('Medians', al))
-  tcap <- if(length(sl)) sprintf('%s stratified by %s', tcap, sl)
 
-  ## Create latex popup boxes for extended box and quantile intervals substrings
-  cap <- gsub('Extended box', '\\\\protect\\\\eboxpopup{Extended box}', cap)
-  cap <- gsub('quantile intervals', '\\\\protect\\\\qintpopup{quantile intervals}',
-              cap)
-
-  
-  startPlot(lb, h=h, w=w)
-  ## Create a list of common arguments passed into functions.
-  dl <- list(formula=formula.no.id,
-             data=data, subset=subset, na.action=na.action,
-             outerlabels=outerlabels)
-
-  ## Extract key form popts if it exists. Create default value and reinsert it
-  ## into popts
-  key <- popts$key
-  if(! length(key) && length(groups)) {
-    klines <- list(x=.6, y=-.07, cex=.8,
-                   columns=length(glevels), lines=TRUE, points=FALSE)
-    key <- switch(what,
-                  box          = NULL,
-                  proportions  = list(columns=length(glevels),
-                                     x=.75, y=-.04, cex=.9,
-                                     col=trellis.par.get('superpose.symbol')$col, corner=c(0,1)),
-                  xy           = klines,
-                  byx.binary   =,
-                  byx.discrete =,
-                  byx.cont     = klines)
-  }
-  if(length(key)) popts$key <- key
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
-
-  ## Create the plots to output into the HTML file.
   switch(what,
-<<<<<<< HEAD
          ## Spike histograms
          hist = {
            p <- do.call('histboxpM',
                         c(list(x=Y,
                                group=interaction(X, sep='\n')), sopts))
          },
+         ## ECDFs
+         ecdf = {
+           p <- do.call('ecdfpM',
+                        c(list(x=Y,
+                               group=interaction(X, sep='\n')), sopts))
+           },
          proportions = {
            ## Over write the element 'sort' from the argument 'sopts' (options
            ## to pass to the summarizing function) with the value found in argument
            ## 'summaryPsort' (whether to sort categories in descending order of
            ## frequencies.
-=======
-         box          = {
-           sopts$violin      <- violinbox
-           sopts$violin.opts <- violinbox.opts
-           s <- do.call('bpplotM', c(dl, sopts))
-           print(s)
-         },
-         proportions  = {
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
            sopts$sort <- summaryPsort
            ## Run summaryP on variable 'dl' (data for use in summarizing functions)
            ## and argument 'sopts' (options to pass to the summarizing function) passed
            ## as arguments.
            s <- do.call('summaryP', c(dl, sopts))
-<<<<<<< HEAD
            popts$col    <- popts$colors
            popts$colors <- NULL
            p <- do.call('plot', c(list(s, marginVal=if(margpres) 'All',
@@ -561,26 +350,16 @@ dReport <-
            ## Create xy plots using the given summary function provided in argument
            ## 'fun' (function that transforms the response variables into summary
            ## statistics)
-=======
-           p <- do.call('plot', c(list(x=s, groups=groups, exclude1=exclude1), popts))
-           print(p)
-         },
-         xy           = {
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
            s <- do.call('summaryS', c(dl, list(fun=fun), sopts))
            p <- do.call('plotp', c(list(data=s, groups=groups), popts))
          },
-         byx.binary   = ,
+         byx.binary = ,
          byx.discrete =,
-<<<<<<< HEAD
          byx.cont = {
            ## Create xy plots with function 'summaryS' using the argument 'fun'
            ## (can be one of the following functions 'quant', 'meanse',
            ## and 'propw').  If argument 'fun' is 'NULL' then do function
            ## 'summaryS' default action.
-=======
-         byx.cont     = {
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
            s <- do.call('summaryS', c(dl, list(fun=fun), sopts))
            ylim <- NULL
            ## if the value of argument 'what' (main controlling variable for dReport)
@@ -600,7 +379,6 @@ dReport <-
                                max(s$y[j, 'Upper'], na.rm=TRUE))
              }
            }
-<<<<<<< HEAD
            ## Do a plotly plot of summaryS
            p <- do.call('plotp',
                  c(list(data=s, groups=groups, ylim=ylim,
@@ -611,48 +389,6 @@ dReport <-
 
   ## store the element 'nobs' (the number of non-NA observations of each
   ## variable in the left hand side of a formula) in variable 'nobs'
-=======
-           p <- do.call('plot',
-            c(list(x=s, groups=groups, ylim=ylim,
-                   panel=if(byx.type == 'violin' && what == 'byx.cont')
-                         medvPanel else mbarclPanel,
-                   paneldoesgroups=TRUE), popts))
-           print(p)
-         } )
-
-  ## Create HTML popup
-  popname <- paste('poptable', lbn, sep='')
-  if(stable) cat(sprintf('\\def\\%s{\\protect\n', popname), file=file, append=TRUE)
-  poptab <- NULL
-
-  if(stable && substring(what, 1, 3) == 'byx')
-    poptab <- latexit(s, what, byx.type, file=file)
-  else if(stable && what == 'proportions') {
-    z <- latex(s, groups=groups, exclude1=exclude1, size=szg, file=file, append=TRUE,
-               landscape=FALSE)   ## may sometimes need landscape=manygroups
-    nstrata <- attr(z, 'nstrata')
-    poptab <- if(manygroups) 'full' else 'mini'
-  }
-  else if(what == 'box' || (what == 'xy' && length(fun))) {
-    S <- summaryM(formula.no.id, data=data, subset=subset, na.action=na.action,
-                  test=FALSE, groups=groups, continuous=continuous)
-    if(stable) {
-      z <- latex(S, table.env=FALSE, file=file, append=TRUE, prmsd=TRUE,
-                 npct='both', exclude1=exclude1, middle.bold=TRUE, center=center,
-                 round='auto', insert.bottom=FALSE, size=szg,
-                 landscape=manygroups)
-      poptab <- if(length(S$group.freq) > 3) 'full' else 'mini'
-      legend <- attr(z, 'legend')
-      legend <- if(! length(legend)) ''
-                else paste('. ', paste(legend, collapse='\n'), sep='')
-      nstrata <- attr(z, 'nstrata')
-    }
-  }
-  if(stable) cat('}\n', file=file, append=TRUE)
-
-  ## Create and append observation numbers to caption
-  ## Create and append tail if given
->>>>>>> 0fbae417618657edbf33c780c7b7f11e12ce552a
   nobs <- Nobs$nobs
   ## Get the min and max of varaibel 'nobs' (number of non-NA observations
   ## of each variable in the left hand side of a formula) an store that
@@ -666,7 +402,7 @@ dReport <-
   nn <- if(r[1] == r[2]) r[1] else paste(r[1], 'to', r[2])
   ## append Nobs range to end of caption contained in variable 'cap'
   cap <- paste0(cap, '. N=', nn)
-  ## If argument 'tail' (user speified end of the caption) exists then
+  ## If argument 'tail' (user specified end of the caption) exists then
   ## append argument 'tail' on to the end of the caption contained in
   ## variable 'cap'.
   if(length(tail)) cap <- paste(cap, tail, sep='. ')

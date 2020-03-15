@@ -4,6 +4,8 @@
 #' 
 #' With input being a series of essentially binary variables with positive indicating that a subject is excluded for a specific reason, orders the reasons so that the first excludes the highest number of subjects, the second excludes the highest number of remaining subjects, and so on.  If a randomization status variable is present, actually randomized (properly or not) subjects are excluded from counts of exclusions.  First draws a single vertical axis graph showing cumulative exclusions, then creates a 2-panel dot chart with the first panel showing that information, along with the marginal frequencies of exclusions and the second showing the number of subjects remaining in the study after the sequential exclusions.  A pop-up table is created showing those quantities plus fractions.  There is an option to not sort by descending exclusion frequencies but instead to use the original variable order.  Assumes that any factor variable exclusions that have only one level and that level indicates a positive finding, that variable has a denominator equal to the overall number of subjects.
 #'
+#' An attribute dot chart is also drawn using the Hmisc package \code{combplotp} function, showing frequencies of all combinations of exclusions that occurred in the data.
+#'
 #' @param formula a formula with only a right-hand side, possibly containing a term of the form \code{pending(x)} to inform the function of which subjects have incomplete randomization ("randomization pending").  The \code{pending} variable is ignored if a subject has an exclusion marked.  A \code{randomized} variable is an optional \code{logical} vector specifying which subjects are considered to have been randomized.  The presence of this variable causes consistency checking against exclusions.  One or more \code{cond} variables provide binary/logical vectors used to define subsets of subjects for which denominators are used to compute additional fractions of exclusions that are reported in a detailed table.  The arguments of the \code{cond} function are the name of the original variable (assumed to be provided as a regular variable in \code{formula}, a single character string giving the label for the condition, and the vector of essentially binary values that specify the condition.
 #' @param data input data frame
 #' @param subset subsetting criteria
@@ -57,9 +59,9 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   assign(envir = en, 'cond', gcond)
   X <- if(length(subset)) model.frame(formula, data=data, subset=subset,
                                       na.action=na.action)
-   else model.frame(formula, data=data, na.action=na.action)
+       else model.frame(formula, data=data, na.action=na.action)
   Terms <- terms(formula, specials=c('pending', 'randomized', 'cond', 'id'))
-  s <- attr(Terms, 'special')
+  s <- attr(Terms, 'specials')
   sp  <- s$pending
   sr  <- s$randomized
   sc  <- s$cond
@@ -74,19 +76,20 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     w <- if(is.logical(x)) x
     else if(is.numeric(x)) x > 0
     else tolower(as.character(x)) %in%
-           c('present', 'yes', 'y', 'true', 'positive')
+           c('present', 'yes', 'y', 'true', 'positive', '+')
     w[is.na(x)] <- FALSE
     w
   }
 
   mis <- function(x) if(is.factor(x) && length(levels(x)) == 1 &&
                         tolower(levels(x)) %in%
-                        c('present', 'yes', 'y', 'true', 'positive'))
+                        c('present', 'yes', 'y', 'true', 'positive', '+'))
                        rep(FALSE, length(x))
                      else is.na(x) | tolower(x) %in% c('unknown','n/a','u','uncertain')
 
-  mu <- markupSpecs$html
-
+  mu      <- markupSpecs$html    # in Hmisc
+  mdchunk <- mu$mdchunk
+  
 #  mblue <- '#0080ff'
   
   N     <- gethreportOption('denom')[c('enrolled', 'randomized')]
@@ -176,6 +179,24 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   ## If randomization status provided, don't count exclusions on
   ## randomized (rightly or wrongly) subjects, otherwise count all exclusions
   use       <- if(length(rnd)) ! rnd else TRUE
+
+  R  <- list()
+  Pl <- list()
+  
+  ## Draw combination (attribute) chart
+  nP <- 1
+  Pl[[nP]] <- combplotp(data=X[use, ], N=norig, includenone=FALSE)
+  u <- if(length(rnd)) 'randomized participants' else 'the data'
+  cap <- c('All combinations of exclusions occurring in',
+           if(length(rnd)) 'non-randomized participants.' else 'the data.')
+  if(npend > 0) cap <- c(cap, npend,
+                         'pending participants were excluded from numerators.')
+  R[[nP]]  <-
+    putHcap(cap, 
+            scap=paste('All combinations of exclusions',
+                       if(length(rnd)) 'of non-randomized participants'),
+            file=FALSE)
+  
   marg      <- sapply(X, function(x) sum(ispos(x) & use, na.rm=TRUE))
   
   add      <- if(sort) which.max(marg) else 1
@@ -218,7 +239,7 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     margdenom  <- c(margdenom,  norig        )
   }
 
-   fracnewTotal  <- nexclude / n
+  fracnewTotal  <- nexclude / n
   fracnewRemain <- nexclude / cond.denom
   fracremain    <- 1. - cumsum(nexclude) / n
   marg <- marg[cadd]
@@ -249,10 +270,10 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   
   m <- sum(nexclude)
   cumex <- cumsum(nexclude)
-  r <- c(10 * floor(cumex[1] / 10), 10 * ceiling(m / 10))
+  r  <- c(10 * floor(cumex[1] / 10), 10 * ceiling(m / 10))
   xx <- rep(0.0125, length(cumex))
-  p <- plotly::plot_ly()
-  p <- add_markers(p, x=~ xx, y=~ cumex, hoverinfo='y')
+  p  <- plotly::plot_ly()
+  p  <- add_markers(p, x=~ xx, y=~ cumex, hoverinfo='y')
 
   an <- list() # orginally formulated for annotations argument to plotly::layout
   side <- 2
@@ -340,7 +361,9 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
 
   cap <- paste(cap, tail, wrn1, wrn2)
 
-  putHfig(p, cap, scap='Cumulative exclusions')
+  nP <- nP + 1
+  R[[nP]]  <- putHcap(cap, scap='Cumulative exclusions', file=FALSE)
+  Pl[[nP]] <- p
 
   rf <- function(x) format(round(x, 3))
   f  <- function(x) ifelse(is.na(x), '', format(x))
@@ -387,7 +410,9 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                  tspanner=c('', cotext),
                  n.tspanner=diff(c(0, coafter, nrow(tabl))),
                  css.tspanner.sep='', css.tspanner = "text-align: left;")
-  putHfig(w, cap, scap='Exclusions', table=TRUE)
+  nP <- nP + 1
+  R[[nP]]  <- putHcap(cap, scap='Exclusions', table=TRUE, file=FALSE)
+  Pl[[nP]] <- w
     
   ## If needed, display subjects marked as randomized who are marked as
   ## meeting exclusion criteria
@@ -395,7 +420,9 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     cap   <- 'Frequency of exclusions for participants marked as randomized'
     scap  <- 'Exclusions in randomized participants'
     z <- htmlTable(E, rnames=FALSE, align='lr')
-    putHfig(z, cap, scap=scap, table=TRUE)
+    nP <- nP + 1
+    R[[nP]]  <- putHcap(cap, scap=scap, table=TRUE, file=FALSE)
+    Pl[[nP]] <- z
     
     if(details && length(Ids)) {
       if(length(detailTail)) detailTail <- paste('.', detailTail)
@@ -404,18 +431,22 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
       le <- length(nexr) - 1
       idtable <- data.frame(Exclusion=E$Exclusion[1 : le], IDs=Ids[1 : le])
       z <- htmlTable(idtable, align='ll', rnames=FALSE)
-      putHfig(z, # cap, scap='IDs for certain excluded randomized participants',
-              table=TRUE,
-              expcoll='Click arrow at left to show participant IDs:')
+      z <- mu$expcolld('Click to show participant IDs', z)
+      nP <- nP + 1
+      R[[nP]] <- ''
+      Pl[[nP]] <- htmltools::HTML(z)
+      
       if(length(erdata)) {
         erd <- erdata[as.character(interaction(erdata[Idnames]))
                         %in% Idso, ]
         z <- htmlTable(erd, rnames=FALSE)
-        putHfig(z, table=TRUE,
-                expcoll='Click arrow at left to see more information about those participants:')
+        z <- mu$expcolld('Click to see more information about those participants', z)
+        nP <- nP + 1
+        R[[nP]] <- ''
+        Pl[[nP]] <- htmltools::HTML(z)
       }
     }
   }
-  
+  mdchunk(R, Pl)
   invisible()
 }

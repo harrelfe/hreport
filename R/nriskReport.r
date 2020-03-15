@@ -1,145 +1,197 @@
 #' Number at Risk Report
 #'
-#' Graph number of subjects at risk
+#' Graph number of participants at risk
 #' 
-#' \code{nriskReport} generates multi-panel charts, separately for categorical analysis variables.  Each panel depicts the number at risk as a function of follow-up time.  The Hmisc \code{Ecdf} function is used.  Stratification is by treatment or other variables.  It is assumed that this function is only run on randomized subjects.
-#' @param formula a formula with time and the left hand side, and with variables on the right side being possible stratification variables.  If no stratification put \code{1} as the right hand side.  Specify unique subject IDs by including a term \code{id()} if subjects have more than one observation.
-#' @param groups a character string naming a superpositioning variable.  Must also be included in \code{formula}.
+#' \code{nriskReport} generates several plots where stratification is by the cross-classifications of all right-hand-side variables other than the time variable and an \code{id} variable.  The first plot depicts the number at risk as a function of follow-up time.  It is assumed that this function is only run on randomized participants.  If an \code{id} variable is present but stratification variables are not, other plots are also produced: a histogram of the number of contacts per participant, a histogram of times at which participants have contacts, the average number of contacts as a function of elapsed time, and a histogram showing the distribution of the longest gap between contacts over participants.
+#' @param formula a formula with time on the left hand side, and with variables on the right side being possible stratification variables.  If no stratification put \code{1} as the right hand side.  Specify unique participant IDs by including a term \code{id()} if participantss have more than one observation.
+#' @param time0 a character string defining the meaning of time zero in follow-up.  Default is \code{"randomization"}.
 #' @param data data frame
 #' @param subset a subsetting epression for the entire analysis
 #' @param na.action a NA handling function for data frames, default is \code{na.retain}
 #' @param ylab character string if you want to override \code{"Number Followed"}
-#' @param panel character string.  Name of panel, which goes into file base names and figure labels for cross-referencing.  The default is \code{'nrisk'}.
 #' @param head character string.  Specifies initial text in the figure caption, otherwise a default is used
 #' @param tail optional character string.  Specifies final text in the figure caption, e.g., what might have been put in a footnote in an ordinary text page.  This appears just before any needles.
-#' @param h numeric.  Height of plot, in inches
+#' @param h numeric.  Height of plot, in pixels
 #' @param w numeric.  Width of plot
-#' @param outerlabels logical that if \code{TRUE}, pass \code{lattice} graphics through the \code{latticeExtra} package's \code{useOuterStrips}function if there are two conditioning (paneling) variables, to put panel labels in outer margins.
-#' @param append logical.  Set to \code{FALSE} to start a new panel
-#' @param popts list specifying extra arguments to pass to \code{Ecdf}.  A common use is for example \code{popts=list(layout=c(columns,rows))} to be used in rendering \code{lattice} plots.  \code{key} and \code{panel} are also frequently used.
 #' @export
+#' @importFrom grDevices gray
 #' @examples
 #' # See test.Rnw in tests directory
 
 nriskReport <-
-  function(formula, groups=NULL,
+  function(formula, 
+           time0='randomization',
            data=NULL, subset=NULL, na.action=na.retain,
-           ylab='Number Followed', panel = 'nrisk', head=NULL, tail=NULL,
-           h=5.5, w=5.5, outerlabels=TRUE, append=FALSE,
-           popts=NULL)
+           ylab='Number Followed', head=NULL, tail=NULL,
+           h=NULL, w=NULL)
 {
-  if(grepl('[^a-zA-Z-]', panel))
-    stop('panel must contain only A-Z a-z -')
+  ohead <- head
+  hro   <- gethreportOption()
+  tvar  <- hro$tx.var
 
-  gro  <- getgreportOption()
-  tvar <- gro$tx.var
+  mu <- markupSpecs$html
+
   Nobs <- nobsY(formula, group=tvar,
                 data=data, subset=subset, na.action=na.action)
-  formula <- Nobs$formula   # removes id()
-  
-  X <- if(length(subset)) model.frame(formula, data=data, subset=subset,
+  formula.no.id <- Nobs$formula   ## removes id()
+  form <- Formula::Formula(formula.no.id)
+  environment(form) <- new.env(parent = environment(form))
+  en <- environment(form)
+  assign(envir = en, 'id', function(x) x)
+
+  Y <- if(length(subset)) model.frame(form, data=data, subset=subset,
                                       na.action=na.action)
-   else model.frame(formula, data=data, na.action=na.action)
-  xnam    <- names(X)
-  tx.used <- tvar %in% xnam
-  tx      <- if(tx.used) X[[tvar]]
-  labs    <- sapply(X, label)
-  labs    <- ifelse(labs == '', xnam, labs)
-  id <- Nobs$id
+       else model.frame(form, data=data, na.action=na.action)
+  
+  id     <- Nobs$id
+  nam    <- names(Y)   # names of all var in formula except id
+  yraw   <- Y[, 1]
+  yunits <- units(yraw)
+  yraw   <- yraw[! is.na(yraw)]
+  if(yunits == '') yunits <- 'days'
+
+  nx <- ncol(Y) - 1
 
   if(length(id) && anyDuplicated(id)) {
+    attrib <- keepHattrib(Y)
     ## Reduce data matrix to one row per subject per stratum with
-    ## maximum follow-up time
-    X <- data.table(X, .id.=id)
-    setnames(X, xnam[1], '.y.')
-    by <- if(length(xnam) > 1) paste(xnam[-1], '.id.', sep=',') else '.id.'
+    ## maximum follow-up time, number of follow-up contacts, and
+    ## longest gap between follow-up contacts for the subject
+    Y <- data.table(Y, .id.=id)    # note Y already has no id
+    setnames(Y, nam[1], '.y.')
+    by <- c(nam[-1], '.id.')
     mx <- function(w) as.double(if(any(! is.na(w))) max(w, na.rm=TRUE) else NA)
-    X <- X[, list(.maxy.=mx(.y.)), by=by]
-    X <- X[, c('.maxy.', xnam[-1]), with=FALSE]
-    setnames(X, '.maxy.', xnam[1])
+    gp <- function(w) {
+      w <- w[! is.na(w)]
+      as.double(if(length(w) > 0) max(diff(sort(c(0, w)))) else NA)
+      }
+    Y <- Y[, list(.maxy. = mx(.y.),
+                  .n.    = length(.y.),
+                  .gap.  = gp(.y.)       ),
+           by=by]
+    Y <- Y[, c('.maxy.', '.n.', '.gap.', nam[-1]), with=FALSE]
+    setnames(Y, '.maxy.', nam[1])
+    Y <- restoreHattrib(as.data.frame(Y), attrib)
   }
 
-  x1      <- X[[1]]
-  xunits  <- units(x1)
-  if(xunits == '') xunits <- 'days'
-  sl <- if(ncol(X) > 1) upFirst(labs[-1], lower=TRUE)
-
-  file <- sprintf('%s/%s.tex', getgreportOption('texdir'), panel)
-  if(getgreportOption('texwhere') == '') file <- ''
-   else if(!append) cat('', file=file)
-  lb <- gsub('\\.', '', gsub('-', '', panel))
-  lbt <- lb
-  if(! grepl('nrisk', lb)) {
-    lb  <- paste(lb,  'nrisk', sep='-')
-    lbt <- paste(lbt, 'nrisk', sep='')
+  tx.used <- FALSE
+  if(nx > 0) {
+    X <- Y[nam[-1]]  
+    xnam    <- names(X)
+    tx.used <- tvar %in% xnam
+    labs    <- sapply(X, label)
+    labs    <- ifelse(labs == '', xnam, labs)
+    past <- function(x) {
+      l <- length(x)
+      if(l < 2) x
+      else if(l == 2) paste(x, collapse=' and ')
+      else paste(paste(x[1 : (l - 1)], collapse=', '), x[l], sep=', and ')
+    }
+    stratlabs <- past(labs)
   }
-  lttpop <- paste('ltt', lbt, sep='')
 
+  y <- Y[[nam[1]]]
+  
   if(! length(head))
-    head <- sprintf('Number of subjects followed at least $x$ %s',
-                    xunits)
-  cap <- if(! length(sl)) head
-  else sprintf('%s stratified by %s', head, sl)
+    head <- sprintf('Number of participants followed at least x %s from %s',
+                    yunits, time0)
 
+  cap <- if(nx == 0) head
+         else
+           sprintf('%s stratified by %s', head, stratlabs)
   shortcap <- cap
 
-  form <- paste('~', xnam[1])
-  cvar <- xnam %nin% c(xnam[1], groups)
-  if(any(cvar)) 
-    form <- paste(form, '|', paste(xnam[cvar], collapse='*'))
-  form <- as.formula(form)
-  if(tx.used) {
-    col <- gro$tx.linecol
-    lwd <- gro$tx.lwd
-  } else {
-    col <- rep(c(gray(c(0, .7)), 'blue', 'red', 'green'), 10)
-    lwd <- rep(c(1, 3), length=10)
-  }
-  dl <- list(x=form,
-             data=X, na.action=na.action,
-             what='1-f', col=col, lwd=lwd)
-  if(length(subset)) dl$subset <- subset
-  if(length(ylab))   dl$ylab   <- ylab
-             
-  key <- popts$key
-  if(! length(key) && length(groups)) {
-    glevels <- levels(X[[groups]])
-    popts$key <- list(x=.6, y=-.07, cex=.8,
-                      columns=length(glevels), lines=TRUE, points=FALSE)
-  }
+  colors  <- if(tx.used) hro$tx.linecol
+             else
+               rep(c(gray(c(0, .7)), 'blue', 'red', 'green'), 10)
+  if(nx > 1) colors <- NULL
 
-  www <- c(dl, popts)
-  p <- if(! length(groups)) do.call('Ecdf', c(dl, popts))
-  else {
-    a <- sprintf("Ecdf(form, groups=%s, data=X, na.action=na.action, what='1-f', col=col, lwd=lwd", groups)
-    if(length(subset)) a <- paste(a, ', subset=subset')
-    if(length(ylab))   a <- paste(a, ', ylab=ylab')
-    a <- paste(a, ')')
-    p <- eval(parse(text=a))
-  }
-  if(outerlabels && length(dim(p)) == 2) {
-#    strip <- function(which.given, which.panel, var.name,
-#                      factor.levels, ...) {
-#      current.var <- var.name[which.given]
-#      levs <- if(current.var == 'time') lev else factor.levels
-#      strip.default(which.given, which.panel, var.name, factor.levels=levs, ...#)
-#    }
-    p <- latticeExtra::useOuterStrips(p) #, strip=strip, strip.left=strip)
-  }
+  gr <- if(nx > 0) interaction(X, drop=TRUE, sep='<br>')
+        else
+          rep('', length(y))
 
-  startPlot(lb, h=h, w=w)
-  print(p)
+#  if(tx.used) {
+#    col <- hro$tx.linecol
+#    lwd <- hro$tx.lwd
+#  } else {
+#    col <- rep(c(gray(c(0, .7)), 'blue', 'red', 'green'), 10)
+#    lwd <- rep(c(1, 3), length=10)
+#  }
+
+  p <- ecdfpM(y, group=gr, what='1-f', ylab=ylab,
+              xlab=paste(upFirst(yunits), 'from', upFirst(time0)),
+              height=h, width=w, colors=colors, extra=c(0, 0.025))
   
   if(length(tail)) cap <- paste(cap, tail, sep='. ')
   no <- c(Nobs$nobs, Nobs$nobs, Nobs$nobsg)
   names(no) <- c('enrolled', 'randomized', rownames(Nobs$nobsg))
-  dNeedle(sampleFrac(no, Nobs), name=lttpop, file=file)
-  cap <- sprintf('%s~\\hfill\\%s', cap, lttpop)
-  endPlot()
+
+  ned <- function(...) {
+    sf <- sampleFrac(...)
+    structure(dNeedle(sf), table=attr(sf, 'table'))
+  }
+  extra <- function(x) c(attr(x, 'table'), x)
+
+  needle <- ned(no, nobsY=Nobs)
+  hc <- putHcap(cap, scap=shortcap, extra=extra(needle), file=FALSE)
+
+  P        <- Cap <- list()
+  P[[1]]   <- p
+  Cap[[1]] <- hc
+
+  if(length(id) && anyDuplicated(id) && nx == 0) {
+    head <- ohead
+    if(! length(head))
+      head <- sprintf('Distributions of follow-up contacts, with times in %s',
+                      yunits)
+    cap      <- head
+    shortcap <- cap
+
+    cap <- paste0(cap, '. Top left panel is a histogram showing the distribution of the number of contacts per participant.  Top right panel is a histogram showing the distribution of time from ', time0, ' to all ', length(yraw), ' contacts.  Bottom left panel is a histogram showing the distribution of the longest time gap between contacts per participant.  Bottom right panel shows the relationship between the time lapse between ', time0, ' and last contact per participant and the average number of contacts for the participant.')
+
+    if(length(tail)) cap <- paste(cap, tail, sep='. ')
+    lay <- function(p, xlab, ylab)
+      plotly::layout(p, xaxis=list(title=xlab), yaxis=list(title=ylab))
+
+    if(! length(h)) h <- 500
+    if(! length(w)) w <- 740
+    p1 <- p2 <- p3 <- p4 <- plotly::plot_ly(height=h, width=w)
+
+    p1 <- plotly::add_histogram(p1, x = ~ .n., nbinsx=15, data=Y,
+                                showlegend=FALSE)
+    xlab <- 'Number of Contacts Per Participant'
+    ylab <- 'Number of Participants'
+    p1 <- lay(p1, xlab, ylab)
+
+    p2 <- plotly::add_histogram(p2, x = ~ yraw, nbinsx=40, showlegend=FALSE)
+    xlab <- paste0(upFirst(yunits), ' From ', upFirst(time0), ', All Contacts')
+    ylab <- 'Number of Contacts'
+    p2 <- lay(p2, xlab, ylab)
     
-  putFig(panel = panel, name = lb, caption = shortcap,
-         longcaption = cap)
+    p3 <- plotly::add_histogram(p3, x = ~ .gap., nbinsx=40, data=Y,
+                                showlegend=FALSE)
+    xlab <- mu$varlabel('Longest Gap Between Contacts Per Participant',
+                        yunits)
+    ylab <- 'Number of Participants'
+    p3 <- lay(p3, xlab, ylab)
+    
+    z  <- supsmu(y, Y$.n.)
+    p4 <- plotly::add_lines(p4, x = ~ z$x, y = z$y, showlegend=FALSE)
+    xlab <- paste(upFirst(yunits), 'From', upFirst(time0), 'to Last Contact')
+    ylab <- 'Number of Contacts Per Participant'
+    p4 <- lay(p4, xlab, ylab)
+    
+#    needle <- ned(no, nobsY=Nobs)
+    Cap[[2]] <- putHcap(cap, scap=shortcap, extra=extra(needle), file=FALSE)
+
+    P[[2]] <- 
+      plotly::subplot(p1, p2, p3, p4,
+                      titleX=TRUE, titleY=TRUE, shareX=FALSE, shareY=FALSE,
+                      nrows=2, margin=0.05)
+  }
+  
+  mu$mdchunk(Cap, P)
   invisible()
-}
+  }
 
 utils::globalVariables('.y.')

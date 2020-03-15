@@ -15,15 +15,20 @@ Imports:
     Formula,
     survival,
     methods,
-		plotly,
-		base64
+    plotly (>= 4.5.2),
+    base64enc,
+    grDevices,
+    graphics,
+    stats,
+    htmltools
 Description: Contains many functions useful for
     monitoring and reporting the results of clinical trials and other
     experiments in which treatments are compared.  HTML is
     used to typeset the resulting reports, recommended to be in the
     context of 'knitr' HTML notebooks. The 'Hmisc', 'plotly', 'ggplot2', and
-		'lattice' packages are used by 'greport' for high-level graphics.
+    'lattice' packages are used by 'greport' for high-level graphics.
 License: GPL (>= 2)
 URL: http://biostat.mc.vanderbilt.edu/Greport,
     https://github.com/harrelfe/greport
-RoxygenNote: 5.0.1
+RoxygenNote: 7.0.2
+Encoding: UTF-8

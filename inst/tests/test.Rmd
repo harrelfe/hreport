@@ -15,21 +15,23 @@ css: stewarttoc.css
 description: "Example of an open meeting DSMB report"
 ---
 
-```{r setup,results='hide'}
-require(Hmisc)
+```{r setup}
+require(Hmisc)  # add to above: results='hide'
 knitrSet(lang='markdown', fig.path='figure/')
 options(prType='html')
 require(plotly)
 require(htmlTable)
+require(data.table)
 tt <- function() {
 source('~/R/hreport/R/Misc.r')
 source('~/R/hreport/R/accrualReport.r')
 source('~/R/hreport/R/exReport.r')
 source('~/R/hreport/R/eReport.r')
 source('~/R/hreport/R/dReport.r')
+source('~/R/hreport/R/nriskReport.r')
 }
 tt()
-mu <- markupSpecs$html   # in Hmisc - HTML markups
+mu   <- markupSpecs$html   # in Hmisc - HTML markups
 frac <- mu$frac
 ```
 ```{r setup2}
@@ -197,7 +199,8 @@ d <- data.frame(x1=f(), x2=f(), x3=f(), x4=f(), x5=f(), x6=f(),
                 sex=sample(c('Female', 'Male'), n, TRUE),
                 treat=sample(c('A', 'B'), n, TRUE),
                 region=sample(c('North America','Europe'), n, TRUE),
-                meda=sample(0:1, n, TRUE), medb=sample(0:1, n, TRUE),
+                meda=sample(0:1, n, TRUE),
+                medb=sample(0:1, n, TRUE),
                 subjid=1:n)
 d$days[1] <- NA
 d <- upData(d, labels=c(x1='MI', x2='Stroke', x3='AKI', x4='Migraines',
@@ -231,6 +234,101 @@ dReport(race + sex ~ region + treat, data=addMarginal(d, region),
         groups='treat',
         w=4.75, h=3.75,
         head='Demographics')
+
+## Add a new block of variables that apply only to males
+dReport(race + sex +
+        pBlock(race, subset=sex=='Male', label='Race: Males') ~ region,
+        data=d, groups='region',
+        head='Demographics with race for males')
+
+# Show raw data and smoothed relationship between age and sbp, stratified.
+dReport(sbp ~ age + treat, groups='treat', data=d,
+        popts=list(fitter=loess, showpts=TRUE), what='xy')
+
+# Show ECDFs of sbp and age stratified by treatment+reference lines at quartiles
+dReport(sbp + age ~ treat, groups='treat', what='ecdf', data=d,
+        sopts=list(q=(1:3)/4, ncols=2, width=750))
+
+# Show means and confidence intervals by treatment as dot chart
+f <- function(x) {
+  x <- x[! is.na(x)]
+  c(smean.cl.normal(x, na.rm=FALSE), n=length(x))
+}
+
+dReport(sbp ~ treat, data=d,
+        fun = f, head='Mean and confidence limits')
+#        popts = list(textplot='Mean', digits=1),
+```
+
+# Medication Usage Over Time
+
+```{r meduse,results='asis'}
+dReport(meda + medb ~ days + treat, what='xy',
+        groups='treat', data=d,
+        popts=list(fitter=loess, xlim=c(0, 130), ylim=c(0, 1), width=750),
+        head='Medication usage',
+        tail='Tick marks indicate mean measurement times within intervals.')
+
+# Show number being followed as days since randomization gets larger
+# make sure nriskReport doesn't get fooled by duplicate data
+d2 <- rbind(d, d)
+require(data.table)
+#gg <- function()
+
+nriskReport(days ~ region + id(subjid),
+            data=addMarginal(d2, region),
+            head='Number of subjects followed for medication usage')
+
+# Make up some new visits to have more than 1/subj.
+# Make up a new definition of time zero
+d2$days[(n + 1) : (2 * n)] <- sample(1 : n, n, TRUE)
+nriskReport(days ~ treat + id(subjid), data=d2, time0='PCI')
+nriskReport(days ~ treat + region, data=d)
+
+# Make a dataset with many records per subject
+d <- data.frame(days    = sample(30:365, 1000, replace=TRUE),
+                subjid  = sample(1:100,  1000, replace=TRUE))
+# Get a richer set of output when there is not stratification
+nriskReport(days ~ id(subjid), data=d)
+```
+
+# Time to Hospitalization and Surgery
+
+```{r hospsurg,results='asis'}
+set.seed(1)
+n <- 400
+dat <- data.frame(t1=runif(n, 2, 5), t2=runif(n, 2, 5),
+                  e1=rbinom(n, 1, .5), e2=rbinom(n, 1, .5),
+                  cr1=factor(sample(c('cancer','heart','censor'), n, TRUE),
+                             c('censor', 'cancer', 'heart')),
+                  cr2=factor(sample(c('gastric','diabetic','trauma', 'censor'),
+                                    n, TRUE),
+                             c('censor', 'diabetic', 'gastric', 'trauma')),
+                  treat=sample(c('a','b'), n, TRUE))
+dat <- upData(dat,
+              labels=c(t1='Time to operation',
+                       t2='Time to rehospitalization',
+                       e1='Operation', e2='Hospitalization',
+                       treat='Treatment'),
+              units=c(t1='Year', t2='Year'), print=FALSE)
+denom <- c(enrolled=n + 40, randomized=400, a=sum(dat$treat=='a'),
+           b=sum(dat$treat=='b'))
+sethreportOption(denom=denom, tx.var='treat')
+survReport <- function(...){}  ## ??
+survReport(Surv(t1, e1) + Surv(t2, e2) ~ treat, data=dat,
+           mfrow=c(2,1), w=4.75, h=6, ps=8, what='S')
+# Show estimates combining treatments
+survReport(Surv(t1, e1) + Surv(t2, e2) ~ 1, data=dat, subpanel='nostrat',
+           mfrow=c(2,1), w=4.75, h=6, ps=8, what='S', times=3, ylim=c(.1, 1))
+
+# Same but use multiple figures and use 1 - S(t) scale
+survReport(Surv(t1, e1) + Surv(t2, e2) ~ treat, data=dat,
+           multi=TRUE, subpanel='multi', append=TRUE, ps=9, what='1-S',
+           times=3:4, aehaz=FALSE, y.n.risk=-.02)
+
+survReport(Surv(t1, e1) + Surv(t2, e2) ~ 1, data=dat,
+           multi=TRUE, subpanel='multinostrat', append=TRUE, ps=9, what='1-S',
+           y.n.risk=-.02)
 ```
 
 # Adverse Events

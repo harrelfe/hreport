@@ -25,9 +25,12 @@
 #' @param append logical. If \code{TRUE} output will be appended instead of overwritten.
 #' @param opts list.  A list specifying arguments to \code{survReport} and \code{startPlot} that override any other arguments.  This is useful when making a long series of \code{survReport} calls with the same options, as the options can be defined up front in a list.
 #' @param \dots ignored
+#' @importFrom rms npsurv survplot
+#' @importFrom survival survfit
+#' @importFrom Formula Formula
 #' @export
 #' @examples
-#' ## See tests directory test.Rnw for a live example
+#' # See tests directory test.Rnw for a live example
 #' \dontrun{
 #'   set.seed(1)
 #'   n <- 400
@@ -97,7 +100,7 @@ survReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
 	       w, adj=c(0, 1), xpd=NA, col='blue')
 	  
 
-  form <- Formula(formula)
+  form <- Formula::Formula(formula)
   Y <- if(length(subset)) model.frame(form, data=data, subset=subset,
                                       na.action=na.action)
   else model.frame(form, data=data, na.action=na.action)
@@ -192,7 +195,7 @@ survReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
     }
     
     no <- c(randomized = nrow(y[! is.na(y)]))
-    s <- npsurv(y ~ x)
+    s <- rms::npsurv(y ~ x)
     if(conf == 'diffbands' && length(s$strata) < 2) conf <- 'bands'
     if(x.is.tx) {
       no        <- c(no, s$n)
@@ -213,20 +216,20 @@ survReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
 
       cex.ylab <- par('cex.lab') * ifelse(nchar(yl) > 33, .8, 1)
       if(what == 'S')
-        survplot(s, 
-                 n.risk=TRUE, conf=conf, lwd=lwd,
-                 lty=1, col=col, ylab=yl, mylim=mylim,
-                 label.curves=list(keys='lines', key.opts=list(bty='n')),
-                 levels.only=TRUE, aehaz=aehaz, times=times, 
-                 cex.ylab=cex.ylab, ...)
+        rms::survplot(s, 
+                      n.risk=TRUE, conf=conf, lwd=lwd,
+                      lty=1, col=col, ylab=yl, mylim=mylim,
+                      label.curves=list(keys='lines', key.opts=list(bty='n')),
+                      levels.only=TRUE, aehaz=aehaz, times=times, 
+                      cex.ylab=cex.ylab, ...)
       else
-        survplot(s, state=if(length(cause)) cau,
-                 fun=function(y) 1 - y,
-                 n.risk=TRUE, y.n.risk=y.n.risk, conf=conf, lwd=lwd,
-                 lty=1, col=col, ylab=yl, mylim=mylim,
-                 label.curves=list(keys='lines', key.opts=list(bty='n')),
-                 levels.only=TRUE, aehaz=aehaz, times=times,
-                 cex.ylab=cex.ylab, ...)
+        rms::survplot(s, state=if(length(cause)) cau,
+                      fun=function(y) 1 - y,
+                      n.risk=TRUE, y.n.risk=y.n.risk, conf=conf, lwd=lwd,
+                      lty=1, col=col, ylab=yl, mylim=mylim,
+                      label.curves=list(keys='lines', key.opts=list(bty='n')),
+                      levels.only=TRUE, aehaz=aehaz, times=times,
+                      cex.ylab=cex.ylab, ...)
 
       capconf <- if(conf == 'diffbands') ', along with half-height of 0.95 confidence limits centered at estimate midpoints. $N$=' else
     ', along with 0.95 confidence bands.  $N$='
