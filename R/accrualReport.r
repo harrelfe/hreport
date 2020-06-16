@@ -8,6 +8,7 @@
 #' @param data data frame.
 #' @param subset a subsetting epression for the entire analysis.
 #' @param na.action a NA handling function for data frames, default is \code{na.retain}.
+#' @param study character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.
 #' @param dateRange \code{Date} or character 2-vector formatted as \code{yyyy-mm-dd}.  Provides the range on the \code{x}-axis.
 #' @param targetN integer vector with target sample sizes over time, same length as \code{targetDate}
 #' @param targetDate \code{Date} or character vector corresponding to \code{targetN}
@@ -16,11 +17,11 @@
 #' @param studynos logical.  Set to \code{FALSE} to suppress summary study numbers table.
 #' @param minrand integer.  Minimum number of randomized subjects a country must have before a box plot of time to randomization is included.
 #' @param panel character string.  Name of panel, which goes into file base names and figure labels for cross-referencing.
-#' @param h numeric.  Height of ordinary plots, in inches.
+#' @param h numeric.  Height of ordinary plots, in pixels.
 #' @param w numeric.  Width of ordinary plots.
-#' @param hb numeric.  Height of extended box plots.
-#' @param wb numeric.  Weight of extended box plots.
-#' @param hdot numeric.  Height of dot charts in inches.
+#' @param hb numeric.  Height of extended box plots in pixels.
+#' @param wb numeric.  Width of extended box plots.
+#' @param hdot numeric.  Height of dot charts in pixels.
 #' @export
 #' @importFrom Formula Formula
 #' @examples
@@ -30,10 +31,10 @@
 
 accrualReport <-
   function(formula, data=NULL, subset=NULL, na.action=na.retain,
-           dateRange=NULL, zoom=NULL, targetN=NULL, targetDate=NULL,
+           study=' ', dateRange=NULL, zoom=NULL, targetN=NULL, targetDate=NULL,
            closeDate=NULL, enrollmax=NULL, studynos=TRUE,
            minrand=10, panel = 'accrual',
-           h=2.5, w=3.75, hb=5, wb=5, hdot=3.5)
+           h=400, w=650, hb=700, wb=700, hdot=400)
 {
   formula <- Formula::Formula(formula)
   
@@ -50,8 +51,8 @@ accrualReport <-
   assign(envir = en, "site",      f)
 
   ned <- function(used) {
-    sf <- sampleFrac(used)
-    structure(dNeedle(sf), table=attr(sf, 'table'))
+    sf <- sampleFrac(used, study=study)
+    structure(dNeedle(sf, study=study), table=attr(sf, 'table'))
   }
   extra <- function(x) c(attr(x, 'table'), x)
 
@@ -61,7 +62,6 @@ accrualReport <-
   sl   <- attr(lhs, 'specials')
   rhs  <- terms(formula, rhs=1, specials=c('region', 'country', 'site'))
   sr   <- attr(rhs, 'specials')
-
   Y <- if(length(subset))
     model.frame(formula, data=data, subset=subset, na.action=na.keep)
    else model.frame(formula, data=data, na.action=na.keep)
@@ -213,7 +213,7 @@ accrualReport <-
 
     ## Interpolate some points for target just so hover text can have
     ## more resolution than at polygon bends
-    p <- plot_ly()
+    p <- plot_ly(width=w, height=h)
     if(length(target)) {
       if(length(target) < 15) {
         dtarget2 <- seq(min(dtarget), max(dtarget), by='week')
@@ -276,7 +276,7 @@ accrualReport <-
      else if(length(x2)) y ~ x2
      else y ~ 1
 
-    h <- function(x) {
+    hs <- function(x) {
       x <- x[! is.na(x)]
       a <- quantile(x, (1 : 3) / 4)
       r <- c(mean(x), a, length(x))
@@ -284,8 +284,8 @@ accrualReport <-
       r
     }
     sym <- c('circle', 'line-ns-open', 'cross', 'line-ns-open')
-    p <- summaryD(form, fun=h, auxvar='N', symbol=sym,
-                  col='blue', height='auto',
+    p <- summaryD(form, fun=hs, auxvar='N', symbol=sym,
+                  col='blue', height='auto', width=wb,
                   xlab='Days to Randomization',
                   legendgroup=c('Mean', 'Quartiles', 'Median', 'Quartiles'))
 
@@ -319,7 +319,7 @@ accrualReport <-
       p <- plot_ly(x = as.numeric(names(nn)),
                    y = as.numeric(nn), mode='markers',
                    name=clab,
-                   width=850, height=350)
+                   width=w, height=h)
       P[[j]] <-
         plotly::layout(p,
                        xaxis=list(title=paste('Participants', clab),
@@ -452,7 +452,7 @@ accrualReport <-
                  xlab=switch(type,
                    permonth     = 'Number Randomized Per Month',
                    persitemonth = 'Number Randomized Per Site Per Month'))
-      else summaryD(form, fun=fun, data=dat, height='auto',
+      else summaryD(form, fun=fun, data=dat, height='auto', width=w,
                     ylab = if(psite && ! length(ns)) 'Site',
                     xlab=switch(type,
                       count=sprintf('Number of Participants %s',      clab),

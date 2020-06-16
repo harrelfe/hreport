@@ -8,6 +8,7 @@
 #' @param data data frame
 #' @param subset a subsetting epression for the entire analysis
 #' @param na.action a NA handling function for data frames, default is \code{na.retain}
+#' @param study character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.
 #' @param ylab character string if you want to override \code{"Number Followed"}
 #' @param head character string.  Specifies initial text in the figure caption, otherwise a default is used
 #' @param tail optional character string.  Specifies final text in the figure caption, e.g., what might have been put in a footnote in an ordinary text page.  This appears just before any needles.
@@ -22,11 +23,12 @@ nriskReport <-
   function(formula, 
            time0='randomization',
            data=NULL, subset=NULL, na.action=na.retain,
+           study=' ',
            ylab='Number Followed', head=NULL, tail=NULL,
-           h=NULL, w=NULL)
+           h=400, w=700)
 {
   ohead <- head
-  hro   <- gethreportOption()
+  hro   <- gethreportOption(study=study)
   tvar  <- hro$tx.var
 
   mu <- markupSpecs$html
@@ -127,8 +129,8 @@ nriskReport <-
   names(no) <- c('enrolled', 'randomized', rownames(Nobs$nobsg))
 
   ned <- function(...) {
-    sf <- sampleFrac(...)
-    structure(dNeedle(sf), table=attr(sf, 'table'))
+    sf <- sampleFrac(..., study=study)
+    structure(dNeedle(sf, study=study), table=attr(sf, 'table'))
   }
   extra <- function(x) c(attr(x, 'table'), x)
 

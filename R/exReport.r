@@ -10,6 +10,7 @@
 #' @param data input data frame
 #' @param subset subsetting criteria
 #' @param na.action function for handling \code{NA}s when creating analysis frame
+#' @param study character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.
 #' @param ignoreExcl a formula with only a right-hand side, specifying the names of exclusion variable names that are to be ignored when counting exclusions (screen failures)
 #' @param ignoreRand a formula with only a right-hand side, specifying the names of exclusion variable names that are to be ignored when counting randomized subjects marked as exclusions
 #' @param plotExRemain set to \code{FALSE} to suppress plotting a 2-panel dot plot showing the number of subjects excluded and the fraction of enrolled subjects remaining
@@ -36,6 +37,7 @@
 #' # See test.Rnw in tests directory
 
 exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
+                     study=' ',
                      ignoreExcl=NULL, ignoreRand=NULL, plotExRemain=TRUE,
                      autoother=FALSE, sort=TRUE, whenapp=NULL, erdata=NULL,
                      head=NULL, tail=NULL,
@@ -92,7 +94,7 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   
 #  mblue <- '#0080ff'
   
-  N     <- gethreportOption('denom')[c('enrolled', 'randomized')]
+  N     <- gethreportOption('denom', study=study)[c('enrolled', 'randomized')]
   n <- norig <- nrow(X)
 #  if(n != N['enrolled'])
 #    warning(sprintf('number of observations (%s) does not equal number enrolled (%s) specified using sethreportOption(denom=)', n, N['enrolled']))
@@ -343,11 +345,16 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
    else paste('Cumulative number of exclusions ($y$-axis) and number of additional exclusions after exclusions placed higher', narnd, '.', sep='')
   cap <- paste(cap,
                if(sort) 'Exclusions are sorted by descending number of incremental exclusions.'
-        else 'Exclusions are in the prespecified order shown in the figure.')
-  cap <- paste(cap, N['enrolled'], 'participants were enrolled,',
+               else 'Exclusions are in the prespecified order shown in the figure.')
+  cap <- if(length(sp)) 
+           paste(cap, N['enrolled'], 'participants were enrolled,',
                sum(pending),
                'non-excluded participants are pending randomization, and',
                m, 'participants were excluded.')
+         else
+           paste(cap, N['enrolled'], 'participants were enrolled and',
+               m, 'participants were excluded.')
+           
   if(length(rnd)) cap <- paste(cap, sum(rnd, na.rm=TRUE),
                                'participants were randomized.')
   

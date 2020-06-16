@@ -1,17 +1,22 @@
 ---
+pagetitle: Test DSMB
 title: "DSMB Report for EXAMPLE Trial"
 author: "FE Harrell"
 date: '`r Sys.Date()`'
 output:
-  html_document:
-    toc: yes
-    toc_depth: 3
-    number_sections: false
-    toc_float: 
-      collapsed: false
+  rmdformats::readthedown:
+    thumbnails: false
+    lightbox: false
+    gallery: false
+    highlight: tango
+    use_bookdown: false
+    toc_depth: 4
+    fig_caption: false
     code_folding: hide
-    theme: cerulean
-description: "Example of an open meeting DSMB report"
+bibliography: harrelfe.bib
+csl: chicago-annotated-bibliography.csl
+link-citations: yes
+description: "Example DSMB report"
 ---
 
 ```{r setup}
@@ -28,6 +33,7 @@ source('~/R/hreport/R/exReport.r')
 source('~/R/hreport/R/eReport.r')
 source('~/R/hreport/R/dReport.r')
 source('~/R/hreport/R/nriskReport.r')
+source('~/R/hreport/R/survReport.r')
 }
 tt()
 mu   <- markupSpecs$html   # in Hmisc - HTML markups
@@ -37,7 +43,6 @@ frac <- mu$frac
 mu$styles()              # define HTML styles, functions
 ```
 
-`r hidingTOC(buttonLabel="Outline")`
 <!--
 May need to run the following system commands one time:
 cd /usr/local/bin
@@ -202,6 +207,7 @@ d <- data.frame(x1=f(), x2=f(), x3=f(), x4=f(), x5=f(), x6=f(),
                 medb=sample(0:1, n, TRUE),
                 subjid=1:n)
 d$days[1] <- NA
+d$race[1:10] <- NA
 d <- upData(d, labels=c(x1='MI', x2='Stroke', x3='AKI', x4='Migraines',
                  x5='Pregnant', x6='Other event', x7='MD withdrawal',
                  race='Race', sex='Sex', treat='treatment',
@@ -303,6 +309,7 @@ dat <- data.frame(t1=runif(n, 2, 5), t2=runif(n, 2, 5),
                                     n, TRUE),
                              c('censor', 'diabetic', 'gastric', 'trauma')),
                   treat=sample(c('a','b'), n, TRUE))
+dat$t1[1:7] <- NA
 dat <- upData(dat,
               labels=c(t1='Time to operation',
                        t2='Time to rehospitalization',
@@ -312,21 +319,13 @@ dat <- upData(dat,
 denom <- c(enrolled=n + 40, randomized=400, a=sum(dat$treat=='a'),
            b=sum(dat$treat=='b'))
 sethreportOption(denom=denom, tx.var='treat')
-survReport <- function(...){}  ## ??
-survReport(Surv(t1, e1) + Surv(t2, e2) ~ treat, data=dat,
-           mfrow=c(2,1), w=4.75, h=6, ps=8, what='S')
+survReport(Surv(t1, e1) + Surv(t2, e2) ~ treat, data=dat)
 # Show estimates combining treatments
-survReport(Surv(t1, e1) + Surv(t2, e2) ~ 1, data=dat, subpanel='nostrat',
-           mfrow=c(2,1), w=4.75, h=6, ps=8, what='S', times=3, ylim=c(.1, 1))
-
-# Same but use multiple figures and use 1 - S(t) scale
-survReport(Surv(t1, e1) + Surv(t2, e2) ~ treat, data=dat,
-           multi=TRUE, subpanel='multi', append=TRUE, ps=9, what='1-S',
-           times=3:4, aehaz=FALSE, y.n.risk=-.02)
-
 survReport(Surv(t1, e1) + Surv(t2, e2) ~ 1, data=dat,
-           multi=TRUE, subpanel='multinostrat', append=TRUE, ps=9, what='1-S',
-           y.n.risk=-.02)
+           what='S', times=3, ylim=c(.1, 1))
+
+# Cumulative incidence under completing risks
+survReport(Surv(t1, cr1) ~ treat, data=dat, cause=c('cancer', 'heart'))
 ```
 
 # Adverse Events

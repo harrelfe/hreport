@@ -8,6 +8,7 @@
 #' @param data input data frame
 #' @param subset subsetting criteria
 #' @param na.action function for handling \code{NA}s when creating analysis frame
+#' @param study character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.
 #' @param refgroup a character string specifying which treatment group is subtracted when computing risk differences.  If there are two treatments the default is the first one listed in \code{hreport options}.
 #' @param minincidence a number between 0 and 1 specifying the minimum incidence in any stratum that must hold before an event is included in the summary
 #' @param conf.int confidence level for difference in proportions (passed to \code{dotchartpl})
@@ -25,7 +26,7 @@
 #' # See test.Rnw in tests directory
 
 eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
-                    refgroup=NULL, minincidence=0, conf.int=0.95,
+                    study=' ', refgroup=NULL, minincidence=0, conf.int=0.95,
                     etype='adverse events',
                     panel='events', subpanel=NULL, head=NULL, tail=NULL,
                     h=6, w=7, append=FALSE, popts=NULL) {
@@ -35,7 +36,7 @@ eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   if(length(subpanel) && grepl('[^a-zA-Z-]', subpanel))
     stop('subpanel must contain only A-Z a-z -')
 
-  popts <- c(popts, list(colors=gethreportOption('tx.col')))
+  popts <- c(popts, list(colors=gethreportOption('tx.col', study=study)))
 
   smaller2 <- markupSpecs$html$smaller2
   
@@ -81,13 +82,12 @@ eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
 
   event <- as.factor(event)
   levels(event) <- upFirst(levels(event))
-#  event  <- as.character(event)
   uevent <- levels(event)
   nue    <- length(uevent)
-  N <- gethreportOption('denom')
-  n <- N[setdiff(names(N), c('enrolled', 'randomized'))]
+  N      <- gethreportOption('denom', study=study)
+  n      <- N[setdiff(names(N), c('enrolled', 'randomized'))]
   groups <- names(n)
-  group <- as.character(group)
+  group  <- as.character(group)
   if(length(groups) == 2 && ! length(refgroup)) refgroup <- groups[1]
 
   g <- function(i) {
@@ -132,8 +132,8 @@ eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                     upFirst(glabel, lower=TRUE))
 
   ned <- function(used) {
-    sf <- sampleFrac(used)
-    structure(dNeedle(sf), table=attr(sf, 'table'))
+    sf <- sampleFrac(used, study=study)
+    structure(dNeedle(sf, study=study), table=attr(sf, 'table'))
   }
   extra <- function(x) c(attr(x, 'table'), x)
 

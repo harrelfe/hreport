@@ -2,6 +2,7 @@ utils::globalVariables(c('Freq', '.group.'))
 
 #' Set hreport Options
 #'
+#' @study an optional study mnemonic (character string) needed when multiple studies are being analyzed (or when one study is divided into distinct strata)
 #' @param \dots a series of options for which non-default values are desired:
 #' \itemize{
 #'  \item{\code{tx.pch}:}{symbols corresponding to treatments}
@@ -16,9 +17,10 @@ utils::globalVariables(c('Freq', '.group.'))
 #'  \item{\code{denom}:}{named vector with overall sample sizes}
 #' }
 # See https://github.com/plotly/plotly.py/blob/master/plotly/colors.py#L83-L87
-sethreportOption <- function(...) {
-  default <- getOption('hreport')
-  opts <- list(...)
+sethreportOption <- function(..., study=' ') {
+  hop     <- getOption('hreport')
+  default <- if(length(hop)) hop[[study]]
+  opts    <- list(...)
   alpha.f <- if(length(opts$alpha.f)) opts$alpha.f else 1
   ## Used to use tx.col = adjustcolor(c('black', '#0080ff'), alpha.f=alpha.f)
   royalblue  <- '#4169E1'
@@ -50,24 +52,28 @@ sethreportOption <- function(...) {
                             "darkgreen", "#ff0000", "orange", "#00ff00",
                             "brown"),
                           default$tx.col)[1 : 2], alpha.f=alpha.f)
-  options(hreport = default)
+  hop[[study]] <- default
+  options(hreport = hop)
   invisible()
 }
 
 #'  
 #' Get hreport Options
 #'
-#' Get hreport options, assigning default values of unspecified optios.
+#' Get hreport options, assigning default values of unspecified options.
 #'
 #' @param opts character vector containing list of option names to retrieve.  If only one element, the result is a scalar, otherwise a list.  If \code{opts} is not specified, a list with all current option settings is returned.
+#' @param study character string specifying an optional study designation
 #' @export
 
-gethreportOption <- function(opts=NULL) {
-  go <- getOption('hreport')
-  if(! length(opts)) return(go)
-  go <- go[opts]
-  if(length(opts) == 1) go <- go[[1]]
-  go
+gethreportOption <- function(opts=NULL, study=' ') {
+  hop <- getOption('hreport')
+  if(! length(hop)) return(hop)
+  hop <- hop[[study]]
+  if(! length(hop)) return(hop)
+  hop <- if(length(opts)) hop[opts] else hop
+  if(length(opts) == 1) hop <- hop[[1]]
+  hop
 }
 
 #' Compute Sample Fractions
@@ -77,10 +83,11 @@ gethreportOption <- function(opts=NULL) {
 #' @param n integer vector, named with \code{"enrolled","randomized"} and optionally also including treatment levels.
 #' @param nobsY a result of the the \code{nobsY} Hmisc function
 #' @param table set to \code{TRUE} to return as an attribute \code{"table"} a character string containing an HTML table showing the pertinent frequencies created from \code{n} and the \code{denom} option, and if \code{nobsY} is present, adding another table with response variable-specific counts.
+#' @param study character string with study ID
 #' @export
 
-sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
-  denom <- gethreportOption('denom')
+sampleFrac <- function(n, nobsY=NULL, table=TRUE, study=' ') {
+  denom <- gethreportOption('denom', study=study)
   if(any(is.na(denom))) stop('denom must be defined with sethreportOption()')
   if(names(n)[1] != 'enrolled')
     n <- structure(c(n[1], n), names=c('enrolled', names(n)))
@@ -95,7 +102,7 @@ sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
   f <- pmin(f, 1.)
   if(! table) return(f)
   tab <- data.frame(upFirst(names(n)), denom, n)
-  size <- 46; border <- 1
+  size <- 54; border <- 1
   tab <- html(tab, align=c('l', 'r', 'r'),
               header=c('Category', 'N', 'Used'),
               file=FALSE, size=size, border=border, rownames=FALSE)
@@ -125,11 +132,76 @@ sampleFrac <- function(n, nobsY=NULL, table=TRUE) {
 #' Create an html base64 string from a png graphic to draw needles for current sample sizes.  Uses colors set by call to \code{sethreportOptions}.
 #'
 #' @param sf output of \code{sampleFrac}
+#' @param study character string specifying study ID
 #' @export
 
-dNeedle <- function(sf) {
-  co <- gethreportOption(c('er.col', 'tx.col'))
+dNeedle <- function(sf, study=' ') {
+  co <- gethreportOption(c('er.col', 'tx.col'), study=study)
   co <- c(co$er.col, co$tx.col)
   
   tobase64image(pngNeedle(sf, col=co))
+}
+
+
+
+#' Compute mfrow Parameter
+#'
+#' Compute a good \code{par("mfrow")} given the
+#' number of figures to plot.
+#'
+#' @param n numeric. Total number of figures to place in layout.
+#' @param small logical. Set to \sQuote{TRUE} if the plot area should be
+#' smaller to accomodate many plots.
+#' @return return numeric vector.
+#' oldmfrow <- mfrowSet(8)
+mfrowSuggest <- function(n, small=FALSE) {
+  omf <- mf <- par('mfrow')
+  if(length(mf) == 0) mf <- c(1,1)
+  if(n == 1) return(mf)
+  if(n > 1 & max(mf) == 1) {
+    if(small) {
+      mf <- if(n <= 2) {
+        c(1, 2)
+      } else if(n <= 4) {
+        c(2,2)
+      } else if(n <= 6) {
+        c(2,3)
+      } else if(n <= 12) {
+        c(3,4)
+      } else if(n <= 16) {
+        c(4,4)
+      } else if(n <= 20) {
+        c(4,5)
+      } else if(n <= 24) {
+        c(4,6)
+      } else if(n <= 25) {
+        c(5,5)
+      } else if(n <= 30) {
+        c(5,6)
+      } else if(n <= 36) {
+        c(6,6)
+      } else if(n <= 42) {
+        c(6,7)
+      } else {
+        c(6,8)
+      }
+    } else {
+      mf <- if(n <= 2) {
+        c(1,2)
+      } else if(n <= 4) {
+        c(2,2)
+      } else if(n <= 6) {
+        c(2,3)
+      } else if(n <= 9) {
+        c(3,3)
+      } else {
+        c(4,3)
+      }
+
+      if(n > 12 & n <= 16) {
+        mf <- c(4,4)
+      }
+    }
+    }
+  mf
 }

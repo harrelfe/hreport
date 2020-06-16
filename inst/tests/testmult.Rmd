@@ -1,0 +1,242 @@
+---
+pagetitle: Study 1 & Study 2 DSMB
+title: "Comparative DSMB Report"
+author: "FE Harrell"
+date: '`r Sys.Date()`'
+output:
+  rmdformats::readthedown:
+    thumbnails: false
+    lightbox: false
+    gallery: false
+    highlight: tango
+    use_bookdown: false
+    toc_depth: 4
+    fig_caption: false
+    code_folding: hide
+bibliography: harrelfe.bib
+csl: chicago-annotated-bibliography.csl
+link-citations: yes
+description: "Example comparative DSMB report"
+---
+
+```{r setup,echo=FALSE}
+require(Hmisc)  # add to above: results='hide'
+knitrSet(lang='markdown', fig.path='figure/')
+options(prType='html')
+require(plotly)
+require(htmlTable)
+require(data.table)
+tt <- function() {
+source('~/R/hreport/R/Misc.r')
+source('~/R/hreport/R/accrualReport.r')
+source('~/R/hreport/R/exReport.r')
+source('~/R/hreport/R/eReport.r')
+source('~/R/hreport/R/dReport.r')
+source('~/R/hreport/R/nriskReport.r')
+source('~/R/hreport/R/survReport.r')
+}
+tt()
+mu   <- markupSpecs$html   # in Hmisc - HTML markups
+frac <- mu$frac
+```
+```{r setup2}
+mu$styles()              # define HTML styles, functions
+```
+
+<!--
+May need to run the following system commands one time:
+cd /usr/local/bin
+sudo ln -s /usr/lib/rstudio/bin/pandoc/pandoc-citeproc
+-->
+
+```{r gendata}
+# Function to generate data for one study
+gendat <- function(study, n) {
+f <- function(na=FALSE) {
+  x <- sample(c('N', 'Y'), n, TRUE)
+  if(na) x[runif(100) < .1] <- NA
+  x
+}
+d <-
+  data.frame(subjid=1:n,
+             site=sample(1:10, n, TRUE),
+             tx=sample(c('A','B'), n, TRUE),
+						 age=rnorm(n, 50, 10),
+						 sex=sample(c('female', 'male'), n, TRUE),
+						 edate=as.Date('2019-10-01') + round(runif(n, 0, 100)),
+             e1     = rbinom(n, 1, .02),
+             e2     = rbinom(n, 1, .02),
+             e3     = rbinom(n, 1, .02),
+             e4     = ifelse(runif(n) < 0.25, NA, rbinom(n, 1, .10)),
+             tested = rbinom(n, 1, .75),
+             e6     = rbinom(n, 1, .02),
+             e7     = rbinom(n, 1, .02),
+						 x1=f(), x2=f(), x3=f(), x4=f(), x5=f(), x6=f(),
+             x7=f(TRUE),
+						 sbp=rnorm(n, 120, 7),
+             dbp=rnorm(n,  80, 6),
+             race=sample(c('Asian', 'Black/AA', 'White'), n, TRUE),
+             meda=sample(0:1, n, TRUE),
+             medb=sample(0:1, n, TRUE),
+						 td=round(runif(n, 0, 30)),
+						 death=rbinom(n, 1, 0.4)
+						 )
+d$rdate <- d$edate
+d$rdate[runif(n) < 0.4] <- NA
+d$rdate[] <- d$rdate[] + round(runif(n, 0, 30))
+d <-
+upData(d,
+			 e5     = ifelse(tested, rbinom(n, 1, .04), NA),
+			 labels=c(age='Age',
+			          rdate='Randomization Date',
+								edate='Enrollment Date',
+			          e1='Prior MI', e2='History of Asthma',
+                e3='History of Upper GI Bleeding',
+                e4='No Significant CAD', e5='Inadequate Renal Function',
+                e6='Pneumonia within 6 weeks', e7='Prior cardiac surgery',
+								x1='MI', x2='Stroke', x3='AKI', x4='Migraines',
+                x5='Pregnant', x6='Other event', x7='MD withdrawal',
+                race='Race', sex='Sex', tx='treatment',
+                sbp='Systolic BP', dbp='Diastolic BP',
+                meda='Comcomitant medication A',
+								medb='Concomitant medication B',
+								td='Follow-up Time', death='Death'),
+			 units=c(sbp='mmHg', dbp='mmHg', age='years', td='Days'), 
+       print=FALSE)								
+
+denom <- c(enrolled=nrow(d), randomized=sum(! is.na(d$rdate)),
+           table(subset(d, ! is.na(rdate))$tx))
+sethreportOption(tx.var='tx', denom=denom, study=study)
+d
+}
+set.seed(1)
+d1 <- gendat('Study 1', 500)
+d2 <- gendat('Study 2', 250)
+
+``` 
+
+# Introduction
+
+This is an example report using simulated data.  Two studies are simulated.  Variable names in the two datasets are the same here, though they needn't be.  The study IDs are `Study 1` and `Study 2`.  These IDs are used to label the tabs that can be clicked to allow the alternate study result to be viewed.
+
+Since the variable names are the same, the two studies could have easily been combined to produce a third "study" called e.g. `Study 1+2`.
+
+## Interactive Graphs
+Most of the graphs produced here are semi-interactive.  One can hover over elements of graphs with the mouse to have detailed information pop up.
+
+## Figure Captions
+Needles represent the fraction of observations used in the current
+analysis.  The first needle (red) shows the fraction of enrolled
+patients used.  If randomization was taken into account, a second
+needle (green) represents the fraction of randomized subjects included
+in the analysis.  When the analyses consider treatment assignment, two
+more needles may be added to the display, showing, respectively, the
+fraction of subjects randomized to treatment A used in the analysis
+and the fraction of subjects on treatment B who were analyzed.  The
+colors of these last two needles are the colors used for the two
+treatments throughout the report.  The following table shows some
+examples.  `dNeedle` uses colors in `sethreportOption(tx.col=, er.col=)`.
+
+```{r needledefs}
+# Store using short variable names so Rmarkdown table column
+# width will not be wider than actually needed
+dned <- function(x) dNeedle(x, study='Study 1')
+n1 <- dned(1)
+n2 <- dned((3:4)/4)
+n3 <- dned((1:2)/4)
+n4 <- dned(c(1,2,3,1)/4)
+```
+
+|Signpost   | Interpretation |
+|------- | -------------------------------------------------|
+| `r n1` | All enrolled subjects analyzed, randomization not considered|
+| `r n2` | Analysis uses `r frac(3,4)` of enrolled subjects, and all randomized subjects|
+| `r n3` | Analysis uses `r frac(1,4)` of enrolled subjects, and `r frac(1,2)` of randomized subjects|
+| `r n4` | Same as previous example, and in addition the analysis utilized treatment assignment, analyzing `r frac(3,4)` of those randomized to A and `r frac(1,4)` of those randomized to B|
+
+
+## Survival Curves
+Graphs containing pairs of Kaplan-Meier survival curves show a shaded
+region centered at the midpoint of the two survival estimates and
+having a height equal to the half-width of the approximate 0.95 pointwise
+confidence interval for the difference of the two survival
+probabilities.  Time points at which the two survival estimates do not
+touch the shaded region denote approximately significantly different
+survival estimates, without any multiplicity correction.
+
+# Accrual {.tabset .tabset-fade}
+
+## Study 1
+```{r accrual1,results='asis'}
+accrualReport(enroll(edate) + randomize(rdate) ~ site(site),
+              data=d1,
+              dateRange=c('2019-10-01', '2020-03-01'),
+              targetN=
+                data.frame(edate=c(250, 500), rdate=c(125, 250)),
+              targetDate=c('2020-01-15', '2020-03-01'),
+              closeDate='2020-06-01', study='Study 1')
+```
+
+## Study 2
+```{r accrual2,results='asis'}
+accrualReport(enroll(edate) + randomize(rdate) ~ site(site),
+              data=d2,
+              dateRange=c('2019-10-01', '2020-03-01'),
+              targetN=
+                data.frame(edate=c(125, 250), rdate=c(75, 125)),
+              targetDate=c('2020-01-15', '2020-03-01'),
+              closeDate='2020-06-01', study='Study 2')
+```
+
+# Exclusions  {.tabset .tabset-fade}
+
+## Study 1
+```{r excl1,results='asis'}
+exReport(~ e1 + e2 + e3 + e4 + e5 + e6 + e7 +
+         id(subjid) + cond(e5, 'Tested', tested),
+         whenapp= c(e4='CCTA done'), study='Study 1', data=d1)
+```
+## Study 2
+```{r excl2,results='asis'}
+exReport(~ e1 + e2 + e3 + e4 + e5 + e6 + e7 +
+         id(subjid) + cond(e5, 'Tested', tested),
+         whenapp= c(e4='CCTA done'), study='Study 2', data=d2)
+```
+
+# Baseline Variables  {.tabset .tabset-fade}
+
+## Study 1
+
+```{r baseline1,results='asis'}
+dReport(race + sex +
+        ynbind(x1, x2, x3, x4, x5, x6, x7, label='Exclusions') ~ 1,
+        head='Overall frequencies of categorical demographic variables and exclusions',
+        data=d1, study='Study 1')
+
+# Show continuous variables stratified by treatment
+dReport(dbp + sbp + age ~ tx, data=d1, study='Study 1', sopts=list(width=800))
+```
+
+## Study 2
+
+```{r baseline2,results='asis'}
+dReport(race + sex +
+        ynbind(x1, x2, x3, x4, x5, x6, x7, label='Exclusions') ~ 1,
+        head='Overall frequencies of categorical demographic variables and exclusions',
+        data=d2, study='Study 2')
+dReport(dbp + sbp + age ~ tx, data=d2, study='Study 2', sopts=list(width=800))
+```
+
+# Survival  {.tabset .tabset-fade}
+
+## Study 1
+
+```{r survival1,results='asis'}
+survReport(Surv(td, death) ~ tx, data=d1, study='Study 1')
+```
+
+## Study 2
+
+```{r survival2,results='asis'}
+survReport(Surv(td, death) ~ tx, data=d2, study='Study 2')
+```

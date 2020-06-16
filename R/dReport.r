@@ -7,6 +7,7 @@
 #' @param formula a formula accepted by the \code{bpplotM} or \code{summaryP} functions.  \code{formula} must have an \code{id(subjectidvariable)} term if there are repeated measures, in order to get correct subject counts as \code{nobs}.
 #' @param groups a superpositioning variable, usually treatment, for categorical charts.  For continuous analysis variables, \code{groups} becomes the \code{y}-axis stratification variable.  This is a single character string.
 #' @param what \code{"hist"} (the default) or \code{"xy"} for continuous analysis variables, or \code{"proportions"} (or shorter) for categorical ones.  Instead, specifying \code{what="byx"} results in an array of quantile intervals for continuous \code{y}, Wilson confidence intervals for proportions when \code{y} is binary, or means and parametric confidence limits when \code{y} is not continuous but is not binary.  If \code{what} is omitted or \code{what="byx"}, actions will be inferred from the most continuous variable listed in \code{formula}.  When \code{fun} is given, different behavior results (see below).
+#' @param study character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.
 #' @param byx.type set to \code{"quantiles"} to show vertical quantile intervals of \code{y} at each \code{x} for when \code{what="byx"} and the \code{y} variable is continuous numeric, or set \code{byx.type="violin"} (the default) to plot half-violin plots at each \code{x}.
 #' @param violinbox set to \code{TRUE} to add violin plots to box plots
 #' @param violinbox.opts a list to pass to \code{panel.violin}
@@ -34,6 +35,7 @@
 dReport <-
   function(formula, groups=NULL,
            what=c('hist', 'ecdf', 'proportions', 'xy', 'byx'),
+           study=' ',
            byx.type=c('hist', 'quantiles', 'violin'),
            violinbox=TRUE,
            violinbox.opts=list(col=adjustcolor('blue', alpha.f=.25),
@@ -48,10 +50,10 @@ dReport <-
   mwhat    <- missing(what)
   what     <- match.arg(what)
   byx.type <- match.arg(byx.type)
-  tvar     <- gethreportOption('tx.var')
+  tvar     <- gethreportOption('tx.var', study=study)
 
   options(grType='plotly')
-  popts <- c(popts, list(colors=gethreportOption('tx.col')))
+  popts <- c(popts, list(colors=gethreportOption('tx.col', study=study)))
 
   margpres <- length(data) && '.marginal.' %in% names(data)
 
@@ -391,7 +393,7 @@ dReport <-
   ## variable in the left hand side of a formula) in variable 'nobs'
   nobs <- Nobs$nobs
   ## Get the min and max of varaibel 'nobs' (number of non-NA observations
-  ## of each variable in the left hand side of a formula) an store that
+  ## of each variable in the left hand side of a formula) and store that
   ## vector in the variable 'r'
   r <- range(nobs)
   ## If the min and max values of variable 'nobs' (number of non-NA observations
@@ -416,11 +418,10 @@ dReport <-
   if(length(nobsg)) n <- c(n, apply(nobsg, 1, max))
 
   ned <- function(...) {
-    sf <- sampleFrac(...)
-    structure(dNeedle(sf), table=attr(sf, 'table'))
+    sf <- sampleFrac(..., study=study)
+    structure(dNeedle(sf, study=study), table=attr(sf, 'table'))
   }
   extra <- function(x) c(attr(x, 'table'), x)
-
   needle <- ned(n, nobsY=Nobs)
   putHcap(cap, scap=shortcap, extra=extra(needle))
   p
