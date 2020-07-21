@@ -1,14 +1,13 @@
 accrualReport           Accrual Report
-appsection              Issue LaTeX section and/or subsection in
-                        appendix
 dNeedle                 Draw Needles
 dReport                 Descriptive Statistics Report
 eReport                 Event Report
 exReport                Exclusion Report
 gethreportOption        Get hreport Options
-hreport                 HTML Reports for Clinical Trials
+hreport-package         Interactive Graphical HTML Reports for Clinical
+                        Trials
 mfrowSuggest            Compute mfrow Parameter
 nriskReport             Number at Risk Report
 sampleFrac              Compute Sample Fractions
-sethreportOption        Set greport Options
+sethreportOption        Set hreport Options
 survReport              Survival Report

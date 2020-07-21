@@ -14,13 +14,10 @@ eReport(
   minincidence = 0,
   conf.int = 0.95,
   etype = "adverse events",
-  panel = "events",
-  subpanel = NULL,
   head = NULL,
   tail = NULL,
   h = 6,
   w = 7,
-  append = FALSE,
   popts = NULL
 )
 }
@@ -43,10 +40,6 @@ eReport(
 
 \item{etype}{a character string describing the nature of the events, for example \code{"adverse events"}, \code{"serious adverse events"}.  Used in figure captions.}
 
-\item{panel}{panel string}
-
-\item{subpanel}{a subpanel designation to add to \code{panel}}
-
 \item{head}{character string.  Specifies initial text in the figure caption, otherwise a default is used.}
 
 \item{tail}{a character string to add to end of automatic caption}
@@ -54,6 +47,8 @@ eReport(
 \item{h}{height of graph}
 
 \item{w}{width of graph}
+
+\item{popts}{a list of additional options to pass to \code{dotchartpl}}
 }
 \description{
 Generates graphics for binary event proportions

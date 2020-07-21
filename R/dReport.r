@@ -23,11 +23,10 @@
 #' @param continuous the minimum number of numeric values a variable must have in order to be considered continuous.  Also passed to \code{summaryM}.
 #' @param h numeric.  Height of plot, in inches
 #' @param w numeric.  Width of plot
-#' @param \dots. Passed to \code{summaryP} or \code{bpplotM}
 #' @param sopts list specifying extra arguments to pass to \code{histboxpM}, \code{ecdfpM}, \code{summaryP}, or \code{summaryS}
 #' @param popts list specifying extra arguments to pass to a plot method.
 #' @export
-#' @importFrom Formula Formula
+#' @importFrom Formula Formula model.part
 #' @importFrom grDevices adjustcolor
 #' @examples
 #' # See test.Rnw in tests directory

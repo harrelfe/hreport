@@ -2,7 +2,7 @@ utils::globalVariables(c('Freq', '.group.'))
 
 #' Set hreport Options
 #'
-#' @study an optional study mnemonic (character string) needed when multiple studies are being analyzed (or when one study is divided into distinct strata)
+#' @param study an optional study mnemonic (character string) needed when multiple studies are being analyzed (or when one study is divided into distinct strata)
 #' @param \dots a series of options for which non-default values are desired:
 #' \itemize{
 #'  \item{\code{tx.pch}:}{symbols corresponding to treatments}

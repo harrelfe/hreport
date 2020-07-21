@@ -21,7 +21,6 @@ survReport(
   mylim = NULL,
   aehaz = TRUE,
   times = NULL,
-  append = FALSE,
   opts = NULL,
   ...
 )

@@ -13,28 +13,22 @@
 #' @param minincidence a number between 0 and 1 specifying the minimum incidence in any stratum that must hold before an event is included in the summary
 #' @param conf.int confidence level for difference in proportions (passed to \code{dotchartpl})
 #' @param etype a character string describing the nature of the events, for example \code{"adverse events"}, \code{"serious adverse events"}.  Used in figure captions.
-#' @param panel panel string
-#' @param subpanel a subpanel designation to add to \code{panel}
+#' @param popts a list of additional options to pass to \code{dotchartpl}
 #' @param head character string.  Specifies initial text in the figure caption, otherwise a default is used.
 #' @param tail a character string to add to end of automatic caption
 #' @param h height of graph
 #' @param w width of graph
 #' @author Frank Harrell
 #' @export
-#' @importFrom Formula Formula
+#' @importFrom Formula Formula model.part
 #' @examples
 #' # See test.Rnw in tests directory
 
 eReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                     study=' ', refgroup=NULL, minincidence=0, conf.int=0.95,
                     etype='adverse events',
-                    panel='events', subpanel=NULL, head=NULL, tail=NULL,
-                    h=6, w=7, append=FALSE, popts=NULL) {
-
-  if(grepl('[^a-zA-Z-]', panel))
-    stop('panel must contain only A-Z a-z -')
-  if(length(subpanel) && grepl('[^a-zA-Z-]', subpanel))
-    stop('subpanel must contain only A-Z a-z -')
+                    head=NULL, tail=NULL,
+                    h=6, w=7, popts=NULL) {
 
   popts <- c(popts, list(colors=gethreportOption('tx.col', study=study)))
 

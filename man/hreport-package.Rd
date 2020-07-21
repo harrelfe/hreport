@@ -16,8 +16,8 @@ Contains many functions useful for
 \seealso{
 Useful links:
 \itemize{
-  \item \url{http://biostat.mc.vanderbilt.edu/Greport}
-  \item \url{https://github.com/harrelfe/greport}
+  \item \url{https://hbiostat.org/R/hreport}
+  \item \url{https://github.com/harrelfe/hreport}
 }
 
 }

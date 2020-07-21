@@ -1,16 +1,14 @@
 Package: hreport
-Version: 0.1-0
-Date: 2016-09-18
+Version: 0.5-0
+Date: 2020-07-21
 Title: Interactive Graphical HTML Reports for Clinical Trials
-Author: Frank E Harrell Jr <f.harrell@vanderbilt.edu>
-Maintainer: Frank E Harrell Jr <f.harrell@vanderbilt.edu>
+Author: Frank E Harrell Jr <fh@fharrell.com>
+Maintainer: Frank E Harrell Jr <fh@fharrell.com>
 Depends:
     Hmisc (>= 4.0-0),
     data.table
 Imports:
     rms (>= 5.0-0),
-    lattice,
-    latticeExtra,
     ggplot2,
     Formula,
     survival,
@@ -20,7 +18,8 @@ Imports:
     grDevices,
     graphics,
     stats,
-    htmltools
+    htmltools,
+		htmlTable
 Description: Contains many functions useful for
     monitoring and reporting the results of clinical trials and other
     experiments in which treatments are compared.  HTML is
@@ -28,7 +27,7 @@ Description: Contains many functions useful for
     context of 'knitr' HTML notebooks. The 'Hmisc', 'plotly', 'ggplot2', and
     'lattice' packages are used by 'greport' for high-level graphics.
 License: GPL (>= 2)
-URL: http://biostat.mc.vanderbilt.edu/Greport,
-    https://github.com/harrelfe/greport
+URL: https://hbiostat.org/R/hreport,
+    https://github.com/harrelfe/hreport
 RoxygenNote: 7.1.1
 Encoding: UTF-8

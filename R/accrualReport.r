@@ -2,7 +2,7 @@
 #'
 #' Generate graphics and HTML to analyze subject accrual
 #'
-#' Typically the left-hand-side variables of the formula, in order, are date of enrollment and date of randomization, with subjects enrolled but not randomized having missing date of randomization.  Given such date variables, this function generates cumulative frequencies optionally with target enrollment/randomization numbers and with time-zooming.  Makes a variety of dot charts by right-hand-side variables:  number of subjects, number of sites, number of subjects per site, fraction of enrolled subjects randomized, number per month, number per site-month.
+#' Typically the left-hand-side variables of the formula, in order, are date of enrollment and date of randomization, with subjects enrolled but not randomized having missing date of randomization.  Given such date variables, this function generates cumulative frequencies optionally with target enrollment/randomization numbers.  Makes a variety of dot charts by right-hand-side variables:  number of subjects, number of sites, number of subjects per site, fraction of enrolled subjects randomized, number per month, number per site-month.
 #'
 #' @param formula formula object, with time variables on the left (separated by +) and grouping variables on the right.  Enrollment date, randomization date, region, country, and site when present must have the variables in parenthesis preceeded by the key words \code{enrollment, randomize, region, country, site}.
 #' @param data data frame.
@@ -13,17 +13,17 @@
 #' @param targetN integer vector with target sample sizes over time, same length as \code{targetDate}
 #' @param targetDate \code{Date} or character vector corresponding to \code{targetN}
 #' @param closeDate \code{Date} or characterstring.  Used for randomizations per month and per site-month - contains the dataset closing date to be able to compute the number of dates that a group (country, site, etc.) has been online since randomizating its first subject.
-#' @param enrollmax numeric specifying the upper y-axis limit for cumulative enrollment when not zoomed
+#' @param enrollmax numeric specifying the upper y-axis limit for cumulative enrollment
 #' @param studynos logical.  Set to \code{FALSE} to suppress summary study numbers table.
 #' @param minrand integer.  Minimum number of randomized subjects a country must have before a box plot of time to randomization is included.
-#' @param panel character string.  Name of panel, which goes into file base names and figure labels for cross-referencing.
 #' @param h numeric.  Height of ordinary plots, in pixels.
 #' @param w numeric.  Width of ordinary plots.
 #' @param hb numeric.  Height of extended box plots in pixels.
 #' @param wb numeric.  Width of extended box plots.
 #' @param hdot numeric.  Height of dot charts in pixels.
 #' @export
-#' @importFrom Formula Formula
+#' @importFrom Formula Formula model.part
+#' @importFrom stats approx quantile
 #' @examples
 #' \dontrun{
 #' # See test.Rmd in inst/tests directory
@@ -31,15 +31,11 @@
 
 accrualReport <-
   function(formula, data=NULL, subset=NULL, na.action=na.retain,
-           study=' ', dateRange=NULL, zoom=NULL, targetN=NULL, targetDate=NULL,
+           study=' ', dateRange=NULL, targetN=NULL, targetDate=NULL,
            closeDate=NULL, enrollmax=NULL, studynos=TRUE,
-           minrand=10, panel = 'accrual',
-           h=400, w=650, hb=700, wb=700, hdot=400)
+           minrand=10, h=400, w=650, hb=700, wb=700, hdot=400)
 {
   formula <- Formula::Formula(formula)
-  
-  if(grepl('[^a-zA-Z-]', panel))
-    stop('panel must contain only A-Z a-z -')
   
   environment(formula) <- new.env(parent = environment(formula))
   en <- environment(formula)

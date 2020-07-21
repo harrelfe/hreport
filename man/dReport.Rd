@@ -70,8 +70,6 @@ dReport(
 \item{sopts}{list specifying extra arguments to pass to \code{histboxpM}, \code{ecdfpM}, \code{summaryP}, or \code{summaryS}}
 
 \item{popts}{list specifying extra arguments to pass to a plot method.}
-
-\item{\dots.}{Passed to \code{summaryP} or \code{bpplotM}}
 }
 \description{
 Generate graphics and LaTeX with descriptive statistics

@@ -22,7 +22,7 @@
 #' @param \dots ignored
 #' @importFrom rms npsurv survplotp
 #' @importFrom survival survfit
-#' @importFrom Formula Formula
+#' @importFrom Formula Formula model.part
 #' @export
 #' @examples
 #' # See tests directory test.Rnw for a live example
@@ -57,7 +57,7 @@ survReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                        head=NULL, tail=NULL,
                        h=425, w=675,
                        mylim=NULL, aehaz=TRUE, times=NULL,
-                       append=FALSE, opts=NULL, ...)
+                       opts=NULL, ...)
 {
   conf <- match.arg(conf)
   what <- match.arg(what)

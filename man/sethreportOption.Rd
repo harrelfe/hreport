@@ -20,6 +20,8 @@ sethreportOption(..., study = " ")
  \item{\code{alpha.f}:}{single numeric specifying alpha adjustment to be applied to all colors.  Default is 1 (no adjustment)}
  \item{\code{denom}:}{named vector with overall sample sizes}
 }}
+
+\item{study}{an optional study mnemonic (character string) needed when multiple studies are being analyzed (or when one study is divided into distinct strata)}
 }
 \description{
 Set hreport Options

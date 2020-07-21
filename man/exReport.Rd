@@ -55,24 +55,6 @@ exReport(
 \item{detailTail}{a character string to add to end of automatic caption for appendix table with listing of subject IDs}
 
 \item{details}{set to \code{FALSE} to prevent writing details about exclusions (IDs, etc.)}
-
-\item{panel}{panel string}
-
-\item{subpanel}{If calling \code{exReport} more than once (e.g., for different values of \code{sort}), specify \code{subpanel} to distinguish the multiple calls.  In that case, \code{-subpanel} will be appended to \code{panel} when creating figure labels and cross-references.}
-
-\item{h}{height of 2-panel graph}
-
-\item{w}{width of 2-panel graph}
-
-\item{hc}{height of cumulative exclusion 1-panel graph}
-
-\item{wc}{width of this 1-panel graph}
-
-\item{adjustwidth}{used to allow wide detailed exclusion table to go into left margin in order to be centered on the physical page.  The default is \code{'-0.75in'}, which works well when using article document class with default page width.  To use the geometry package in LaTeX with margin=.45in specify \code{adjustwidth='+.90in'}.}
-
-\item{append}{set to \code{TRUE} if adding to an existing sub-report}
-
-\item{popts}{a list of options to pass to graphing functions}
 }
 \description{
 Generates graphics for sequential exclusion criteria

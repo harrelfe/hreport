@@ -16,6 +16,7 @@
 #' @param w numeric.  Width of plot
 #' @export
 #' @importFrom grDevices gray
+#' @importFrom stats supsmu
 #' @examples
 #' # See test.Rnw in tests directory
 

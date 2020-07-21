@@ -11,14 +11,12 @@ accrualReport(
   na.action = na.retain,
   study = " ",
   dateRange = NULL,
-  zoom = NULL,
   targetN = NULL,
   targetDate = NULL,
   closeDate = NULL,
   enrollmax = NULL,
   studynos = TRUE,
   minrand = 10,
-  panel = "accrual",
   h = 400,
   w = 650,
   hb = 700,
@@ -45,13 +43,11 @@ accrualReport(
 
 \item{closeDate}{\code{Date} or characterstring.  Used for randomizations per month and per site-month - contains the dataset closing date to be able to compute the number of dates that a group (country, site, etc.) has been online since randomizating its first subject.}
 
-\item{enrollmax}{numeric specifying the upper y-axis limit for cumulative enrollment when not zoomed}
+\item{enrollmax}{numeric specifying the upper y-axis limit for cumulative enrollment}
 
 \item{studynos}{logical.  Set to \code{FALSE} to suppress summary study numbers table.}
 
 \item{minrand}{integer.  Minimum number of randomized subjects a country must have before a box plot of time to randomization is included.}
-
-\item{panel}{character string.  Name of panel, which goes into file base names and figure labels for cross-referencing.}
 
 \item{h}{numeric.  Height of ordinary plots, in pixels.}
 
@@ -67,7 +63,7 @@ accrualReport(
 Generate graphics and HTML to analyze subject accrual
 }
 \details{
-Typically the left-hand-side variables of the formula, in order, are date of enrollment and date of randomization, with subjects enrolled but not randomized having missing date of randomization.  Given such date variables, this function generates cumulative frequencies optionally with target enrollment/randomization numbers and with time-zooming.  Makes a variety of dot charts by right-hand-side variables:  number of subjects, number of sites, number of subjects per site, fraction of enrolled subjects randomized, number per month, number per site-month.
+Typically the left-hand-side variables of the formula, in order, are date of enrollment and date of randomization, with subjects enrolled but not randomized having missing date of randomization.  Given such date variables, this function generates cumulative frequencies optionally with target enrollment/randomization numbers.  Makes a variety of dot charts by right-hand-side variables:  number of subjects, number of sites, number of subjects per site, fraction of enrolled subjects randomized, number per month, number per site-month.
 }
 \examples{
 \dontrun{
