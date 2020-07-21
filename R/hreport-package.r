@@ -2,7 +2,6 @@
 #'
 #' @author Frank E Harrell Jr \email{f.harrell@@vanderbilt.edu}
 #'
-#' @export endPlot putFig startPlot
 #' @import Hmisc plotly ggplot2 lattice data.table methods
 #' @importFrom graphics abline axis box grconvertX grconvertY lines par plot plot.new points text
 #' @importFrom stats as.formula median model.frame qnorm reshape sd terms ecdf
