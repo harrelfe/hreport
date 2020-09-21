@@ -20,22 +20,9 @@ description: "Example DSMB report"
 ---
 
 ```{r setup}
-require(Hmisc)  # add to above: results='hide'
+require(hreport)  # add to above: results='hide'
 knitrSet(lang='markdown', fig.path='figure/')
 options(prType='html')
-require(plotly)
-require(htmlTable)
-require(data.table)
-tt <- function() {
-source('~/R/hreport/R/Misc.r')
-source('~/R/hreport/R/accrualReport.r')
-source('~/R/hreport/R/exReport.r')
-source('~/R/hreport/R/eReport.r')
-source('~/R/hreport/R/dReport.r')
-source('~/R/hreport/R/nriskReport.r')
-source('~/R/hreport/R/survReport.r')
-}
-tt()
 mu   <- markupSpecs$html   # in Hmisc - HTML markups
 frac <- mu$frac
 ```

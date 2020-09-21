@@ -17,6 +17,7 @@ utils::globalVariables(c('Freq', '.group.'))
 #'  \item{\code{denom}:}{named vector with overall sample sizes}
 #' }
 # See https://github.com/plotly/plotly.py/blob/master/plotly/colors.py#L83-L87
+#' @export
 sethreportOption <- function(..., study=' ') {
   hop     <- getOption('hreport')
   default <- if(length(hop)) hop[[study]]

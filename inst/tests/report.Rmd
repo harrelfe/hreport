@@ -3,34 +3,24 @@ title: "Example Closed Meeting Data Monitoring Committee Report"
 author: "FE Harrell"
 date: '`r Sys.Date()`'
 output:
-  html_document:
-    toc: yes
-    toc_depth: 3
-    number_sections: false
-    toc_float: 
-      collapsed: false
+  rmdformats::readthedown:
+    thumbnails: false
+    lightbox: false
+    gallery: false
+    highlight: tango
+    use_bookdown: false
+    toc_depth: 4
+    fig_caption: false
     code_folding: hide
-    theme: cerulean
-csl: american-medical-association.csl
+csl: chicago-annotated-bibliography.csl
 bibliography: harrelfe.bib
 description: "Example of a closed meeting DSMB report"
 ---
 
 ```{r setup,echo=FALSE,results='asis'}
 echo <- TRUE     # include code in report
-require(Hmisc)
+require(hreport)
 knitrSet(lang='markdown', fig.path='figure/', echo=echo)
-require(plotly)
-require(htmlTable)
-tt <- function() {
-source('~/R/hreport/R/Misc.r')
-source('~/R/hreport/R/accrualReport.r')
-source('~/R/hreport/R/exReport.r')
-source('~/R/hreport/R/eReport.r')
-source('~/R/hreport/R/dReport.r')
-source('~/R/hreport/R/survReport.r')
-}
-tt()
 mu <- markupSpecs$html   # in Hmisc - HTML markups
 frac <- mu$frac
 mu$styles()              # define HTML styles, functions

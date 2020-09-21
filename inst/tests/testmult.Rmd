@@ -19,23 +19,14 @@ link-citations: yes
 description: "Example comparative DSMB report"
 ---
 
+<!--
+To create html file: knit to rmdreadthedown (html) under RStudio
+-->
+
 ```{r setup,echo=FALSE}
-require(Hmisc)  # add to above: results='hide'
+require(hreport)  # add to above: results='hide'
 knitrSet(lang='markdown', fig.path='figure/')
 options(prType='html')
-require(plotly)
-require(htmlTable)
-require(data.table)
-tt <- function() {
-source('~/R/hreport/R/Misc.r')
-source('~/R/hreport/R/accrualReport.r')
-source('~/R/hreport/R/exReport.r')
-source('~/R/hreport/R/eReport.r')
-source('~/R/hreport/R/dReport.r')
-source('~/R/hreport/R/nriskReport.r')
-source('~/R/hreport/R/survReport.r')
-}
-tt()
 mu   <- markupSpecs$html   # in Hmisc - HTML markups
 frac <- mu$frac
 ```
@@ -54,7 +45,8 @@ sudo ln -s /usr/lib/rstudio/bin/pandoc/pandoc-citeproc
 gendat <- function(study, n) {
 f <- function(p) rbinom(n, 1, p)
 d <-
-  data.frame(subjid=1:n,
+  data.frame(study=study,
+	           subjid=1:n,
              site=sample(1:10, n, TRUE),
              tx=sample(c('A','B'), n, TRUE),
 						 age=rnorm(n, 50, 10),
@@ -78,7 +70,8 @@ d <-
 d <-
   upData(d,
 		e5     = ifelse(tested, f(.06), NA),    # don't randomize if exclusion present:
-		rdate  = ifelse(e1|e2|e3|e4|ifelse(is.na(e5), 0, e5)|e6|e7, NA, edate + round(runif(n, 0, 30))),
+		rdate  = ifelse(e1|e2|e3|e4|ifelse(is.na(e5), 0, e5)|e6|e7, NA,
+		            edate + round(runif(n, 0, 30))),
 		rdate  = as.Date(rdate, origin='1970-01-01'),   # ifelse loses Date class
 		tx     = ifelse(is.na(rdate), NA, tx),
 		labels=c(age='Age',
@@ -114,7 +107,7 @@ sethreportOption(tx.var='tx', denom=denom, study='Study 1+2')
 
 This is an example report using simulated data.  Two studies are simulated.  Variable names in the two datasets are the same here, though they needn't be.  The study IDs are `Study 1` and `Study 2`.  These IDs are used to label the tabs that can be clicked to allow the alternate study result to be viewed.
 
-Since the variable names are the same, the two studies have also been combined to produce a third "study" called e.g. `Study 1+2`.  Since patient accrual is unique to each study, a combined accrual report is not presented.  The exclusion criteria report is also not included for the combined trials.
+Since the variable names are the same, the two studies have also been combined to produce a third "study" called e.g. `Study 1+2`.  For certain results, `study` is used as a stratification variable for the `Study 1+2` tab.  Since patient accrual is unique to each study, a combined accrual report is not presented.  The exclusion criteria report is also not included for the combined trials.  
 
 For accrual and exclusion reports, the entire database is used.  After that point, datasets are subsetted to include only randomized participants.
 
@@ -227,9 +220,13 @@ dReport(dbp + sbp + age ~ tx, data=d2, study='Study 2', sopts=list(width=800))
 ## Study 1+2
 
 ```{r baseline12,results='asis'}
-dReport(race + sex ~ 1, head='Overall frequencies of categorical demographic variables',
-        data=d3, study='Study 1+2')
-dReport(dbp + sbp + age ~ tx, data=d3, study='Study 1+2', sopts=list(width=800))
+dReport(race + sex ~ study,
+        head='Overall frequencies of categorical demographic variables',
+        data=addMarginal(d3, study),
+        study='Study 1+2')
+dReport(dbp + sbp + age ~ tx + study,
+        data=addMarginal(d3, study),
+        study='Study 1+2', sopts=list(width=800, ncols=2))
 ```
 
 # Survival  {.tabset .tabset-fade}
@@ -249,5 +246,6 @@ survReport(Surv(td, death) ~ tx, data=d2, study='Study 2')
 ## Study 1+2
 
 ```{r survival12,results='asis'}
-survReport(Surv(td, death) ~ tx, data=d3, study='Study 1+2')
+survReport(Surv(td, death) ~ tx,
+           data=d3, study='Study 1+2')
 ```
