@@ -5,4 +5,7 @@
 inst/tests/*.bib
 inst/tests/*.csl
 inst/tests/pandoc*
+hreport.Rproj
+inst/tests/ssafety.rda
+
 
