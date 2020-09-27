@@ -9,9 +9,7 @@ dReport(
   groups = NULL,
   what = c("hist", "ecdf", "proportions", "xy", "byx"),
   study = " ",
-  byx.type = c("hist", "quantiles", "violin"),
-  violinbox = TRUE,
-  violinbox.opts = list(col = adjustcolor("blue", alpha.f = 0.25), border = FALSE),
+  byx.type = c("hist", "quantiles"),
   summaryPsort = FALSE,
   exclude1 = TRUE,
   stable = TRUE,
@@ -37,11 +35,7 @@ dReport(
 
 \item{study}{character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.}
 
-\item{byx.type}{set to \code{"quantiles"} to show vertical quantile intervals of \code{y} at each \code{x} for when \code{what="byx"} and the \code{y} variable is continuous numeric, or set \code{byx.type="violin"} (the default) to plot half-violin plots at each \code{x}.}
-
-\item{violinbox}{set to \code{TRUE} to add violin plots to box plots}
-
-\item{violinbox.opts}{a list to pass to \code{panel.violin}}
+\item{byx.type}{set to \code{"quantiles"} to show vertical quantile intervals of \code{y} at each \code{x} for when \code{what="byx"} and the \code{y} variable is continuous numeric, or set \code{byx.type="hist"} (the default) to plot spike histograms along with quantile intervals at each \code{x}.}
 
 \item{summaryPsort}{set to \code{TRUE} to sort categories in descending order of frequencies}
 
