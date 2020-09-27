@@ -219,12 +219,15 @@ dReport(dbp + sbp + age ~ tx, data=d2, study='Study 2', sopts=list(width=800))
 
 ## Study 1+2
 
+When combining studies we don't need to examine baseline variables stratified by treatment but rather stratified by study.
+
 ```{r baseline12,results='asis'}
 dReport(race + sex ~ study,
         head='Overall frequencies of categorical demographic variables',
         data=addMarginal(d3, study),
         study='Study 1+2')
-dReport(dbp + sbp + age ~ tx + study,
+
+dReport(dbp + sbp + age ~ study,
         data=addMarginal(d3, study),
         study='Study 1+2', sopts=list(width=800, ncols=2))
 ```

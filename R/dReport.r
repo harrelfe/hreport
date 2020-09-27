@@ -8,9 +8,7 @@
 #' @param groups a superpositioning variable, usually treatment, for categorical charts.  For continuous analysis variables, \code{groups} becomes the \code{y}-axis stratification variable.  This is a single character string.
 #' @param what \code{"hist"} (the default) or \code{"xy"} for continuous analysis variables, or \code{"proportions"} (or shorter) for categorical ones.  Instead, specifying \code{what="byx"} results in an array of quantile intervals for continuous \code{y}, Wilson confidence intervals for proportions when \code{y} is binary, or means and parametric confidence limits when \code{y} is not continuous but is not binary.  If \code{what} is omitted or \code{what="byx"}, actions will be inferred from the most continuous variable listed in \code{formula}.  When \code{fun} is given, different behavior results (see below).
 #' @param study character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.
-#' @param byx.type set to \code{"quantiles"} to show vertical quantile intervals of \code{y} at each \code{x} for when \code{what="byx"} and the \code{y} variable is continuous numeric, or set \code{byx.type="violin"} (the default) to plot half-violin plots at each \code{x}.
-#' @param violinbox set to \code{TRUE} to add violin plots to box plots
-#' @param violinbox.opts a list to pass to \code{panel.violin}
+#' @param byx.type set to \code{"quantiles"} to show vertical quantile intervals of \code{y} at each \code{x} for when \code{what="byx"} and the \code{y} variable is continuous numeric, or set \code{byx.type="hist"} (the default) to plot spike histograms along with quantile intervals at each \code{x}.
 #' @param summaryPsort set to \code{TRUE} to sort categories in descending order of frequencies
 #' @param exclude1 logical used for \code{latex} methods when \code{summaryM} or \code{summaryP} are called by \code{dReport}, or for plot methods for \code{summaryP}.  The default is \code{TRUE} to cause the most frequent level of any two-level categorical variable to not be used as a separate category in the graphic or table.  See \code{\link[Hmisc]{summaryM}}.
 #' @param stable set to \code{FALSE} to suppress creation of backup supplemental tables for graphics
@@ -35,10 +33,7 @@ dReport <-
   function(formula, groups=NULL,
            what=c('hist', 'ecdf', 'proportions', 'xy', 'byx'),
            study=' ',
-           byx.type=c('hist', 'quantiles', 'violin'),
-           violinbox=TRUE,
-           violinbox.opts=list(col=adjustcolor('blue', alpha.f=.25),
-             border=FALSE),
+           byx.type=c('hist', 'quantiles'),
            summaryPsort=FALSE, exclude1=TRUE,
            stable=TRUE,
            fun=NULL, data=NULL, subset=NULL, na.action=na.retain,
@@ -225,12 +220,12 @@ dReport <-
       fun <- meanse
       'byx.discrete'
       ## Otherwise if argument 'byx.type' (determines the type of byx plot done.
-      ## either 'quantiles' or 'violin') equals the value 'quantiles' then set
+      ## either 'quantiles' or 'hist') equals the value 'quantiles' then set
       ## 'fun' to the function 'quant' which displays the quantiles for the 
       ## elements of 'Y'. Then set 'what' to the value 'byx.cont'.
     } else {
       if(byx.type == 'quantiles') fun <- quant
-      ## NOTE: if argument 'byx.type' equals 'NULL' or the value 'violin' then 'fun'
+      ## NOTE: if argument 'byx.type' equals 'NULL' then 'fun'
       ## is 'NULL'.
       'byx.cont'
     }
@@ -283,8 +278,7 @@ dReport <-
        byx.cont     = paste('Medians',
                             switch(byx.type,
                                    hist='with histograms',
-                                   quantiles='with quantile intervals',
-                                   violin='with violin (density) plots'),
+                                   quantiles='with quantile intervals'),
                             al))
 
   ## Create statification label by creating a english language list of
