@@ -1,11 +1,11 @@
 Package: hreport
 Version: 0.5-0
-Date: 2020-07-21
+Date: 2020-10-04
 Title: Interactive Graphical HTML Reports for Clinical Trials
 Author: Frank E Harrell Jr <fh@fharrell.com>
 Maintainer: Frank E Harrell Jr <fh@fharrell.com>
 Depends:
-    Hmisc (>= 4.0-0),
+    Hmisc (>= 4.4-2),
     data.table
 Imports:
     rms (>= 5.0-0),

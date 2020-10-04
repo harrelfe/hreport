@@ -1,6 +1,6 @@
 #' Interactive Graphical HTML Reports for Clinical Trials
 #'
-#' @author Frank E Harrell Jr \email{f.harrell@@vanderbilt.edu}
+#' @author Frank E Harrell Jr \email{fh@fharrell.com}
 #'
 #' @import Hmisc plotly ggplot2 data.table methods
 #' @importFrom graphics abline axis box lines par plot plot.new points text

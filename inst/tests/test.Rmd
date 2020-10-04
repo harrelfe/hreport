@@ -366,3 +366,10 @@ sethreportOption(tx.var='treat', denom=denom)
 
 eReport(event ~ treat, data=ae, minincidence=.05)
 ```
+
+To show hazard rate estimates from exponential distributions (events per person time of exposure), make up total exposure time for patients on each treatment, in person-years.
+
+```{r hazard, results='asis'}
+exposure <- c(a=10000, b=9000)
+eReport(event ~ treat, exposure=exposure, expunit='year', data=ae)
+```

@@ -10,8 +10,7 @@ coding.  It is recommended that you use html notebooks in RStudio so that code c
 hreport composes all figure captions and makes heavy use of
 analysis file annotations such as variable labels and units of
 measurement.  Some new graphical elements are introduced such as
-special dot charts that replace tables, extended box plots, split
-violin plots for longitudinal continuous variables, half confidence
+special dot charts that replace tables, extended box plots, half confidence
 intervals for differences, new charts for representing patient flow,
 and pop-up tooltips.
 
@@ -21,11 +20,10 @@ Current Goals
 * Add Svetlana Eden's function in rreport package for graphically summarizing adverse events by major and minor categories (e.g., body system and preferred term)
 * Add function similar to that in rreport for group sequential monitoring boundary presentation
 * Need executable tests in tests/
-* See if current tests should become vignettes
 
 
 Web Sites
 =============
-* Overall: http://biostat.mc.vanderbilt.edu/Greport
-* CRAN: http://cran.r-project.org/web/packages/greport
-* Changelog: https://github.com/harrelfe/greport/commits/master
+* Overall: http://hbiostat.org/R/hreport
+* CRAN: http://cran.r-project.org/web/packages/hreport
+* Changelog: https://github.com/harrelfe/hreport/commits/master

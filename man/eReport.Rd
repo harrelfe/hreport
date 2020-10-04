@@ -9,6 +9,8 @@ eReport(
   data = NULL,
   subset = NULL,
   na.action = na.retain,
+  exposure = NULL,
+  expunit = "",
   study = " ",
   refgroup = NULL,
   minincidence = 0,
@@ -22,7 +24,7 @@ eReport(
 )
 }
 \arguments{
-\item{formula}{a formula with one or two left hand variables (the first representing major categorization and the second minor), and 1-2 right hand variables.  One of these may be enclosed in \code{id()} to indicate the presence of a unique subject ID, and the other is treatment.}
+\item{formula}{a formula with one or two left hand variables (the first representing major categorization and the second minor), and 1-2 right hand variables.  One of the right hand variables may be enclosed in \code{id()} to indicate the presence of a unique subject ID.  The remaining variable is treatment.}
 
 \item{data}{input data frame}
 
@@ -30,11 +32,15 @@ eReport(
 
 \item{na.action}{function for handling \code{NA}s when creating analysis frame}
 
+\item{exposure}{a numeric vector whose length is the number of treatments, with names equal to the treatment names}
+
+\item{expunit}{character string specifying the time units for \code{exposure}}
+
 \item{study}{character string identifying the study; used in multi-study reports or where distinct patient strata are analyzed separately.  Used to fetch the study-specific metadata stored by \code{\link{sethreportOption}}.  Single study reports just use \code{study=' '}.}
 
 \item{refgroup}{a character string specifying which treatment group is subtracted when computing risk differences.  If there are two treatments the default is the first one listed in \code{hreport options}.}
 
-\item{minincidence}{a number between 0 and 1 specifying the minimum incidence in any stratum that must hold before an event is included in the summary}
+\item{minincidence}{a number between 0 and 1 specifying the minimum incidence in any stratum that must hold before an event is included in the summary.  When \code{exposure} is given, \code{minincidence} applies to the hazard rate.}
 
 \item{conf.int}{confidence level for difference in proportions (passed to \code{dotchartpl})}
 
@@ -54,7 +60,7 @@ eReport(
 Generates graphics for binary event proportions
 }
 \details{
-Generates dot charts showing proportions of subjects having events (at any time).  Events can be categorized by a single level or by major and minor levels (e.g., body system and preferred terms).  When there are two treatments, half-width CLs of treatment differences are drawn, centered at the midpoint of the two proportions, and CLs for differences appear in hover text.   Input data must contain one record per event, with this record containing the event name.  If there is more than one event of a given type per subject, unique subject ID must be provided.  Denominators come from \code{hreport} options. It is also assumed that only randomized subjects are included in the dataset.
+Generates dot charts showing proportions of subjects having events (at any time).  Events can be categorized by a single level or by major and minor levels (e.g., body system and preferred terms).  When there are two treatments, half-width CLs of treatment differences are drawn, centered at the midpoint of the two proportions, and CLs for differences appear in hover text.   Input data must contain one record per event, with this record containing the event name.  If there is more than one event of a given type per subject, unique subject ID must be provided.  Denominators come from \code{hreport} options when computing event incidence proportions.  Instead, when a named vector \code{exposure} is specified, with names equal to the treatments, \code{exposure} is used as the denominator so that the exponential distribution hazard rate is computed, i.e., events per unit of exposure time.  When a subject has only one event of each type, the usual interpretation holds.  When a subject has multiple events, the estimate is events per person per time unit.  A character variable \code{expunit} defines the time units.   It is assumed that only randomized subjects are included in the dataset.  Whenever the number of events of a given type is zero for a group, the event frequency is changed to 0.5 so that one may compute confidence intervals on the log scale as well as hazard ratios.
 }
 \examples{
 # See test.Rnw in tests directory

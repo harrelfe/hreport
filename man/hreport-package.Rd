@@ -22,5 +22,5 @@ Useful links:
 
 }
 \author{
-Frank E Harrell Jr \email{f.harrell@vanderbilt.edu}
+Frank E Harrell Jr \email{fh@fharrell.com}
 }
