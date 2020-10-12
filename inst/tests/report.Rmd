@@ -26,9 +26,6 @@ frac <- mu$frac
 mu$styles()              # define HTML styles, functions
 ```
 
-`r hidingTOC(buttonLabel="Outline")`
-
-
 ```{r getdata}
 Load(ssafety)
 ssafety <- upData(ssafety, rdate=as.Date(rdate),

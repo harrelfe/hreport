@@ -30,11 +30,6 @@ frac <- mu$frac
 mu$styles()              # define HTML styles, functions
 ```
 
-<!--
-May need to run the following system commands one time:
-cd /usr/local/bin
-sudo ln -s /usr/lib/rstudio/bin/pandoc/pandoc-citeproc
--->
 
 ```{r gendata}
 ## Generate test data
@@ -180,6 +175,7 @@ f <- function(na=FALSE) {
   x
 }
 set.seed(1)
+outs <- c('home', 'hospitalized', 'organ support', 'dead')
 d <- data.frame(x1=f(), x2=f(), x3=f(), x4=f(), x5=f(), x6=f(),
                 x7=f(TRUE),
                 age=rnorm(n, 50, 10),
@@ -192,6 +188,7 @@ d <- data.frame(x1=f(), x2=f(), x3=f(), x4=f(), x5=f(), x6=f(),
                 region=sample(c('North America','Europe'), n, TRUE),
                 meda=sample(0:1, n, TRUE),
                 medb=sample(0:1, n, TRUE),
+								outcome=factor(sample(1:4, n, TRUE), 1:4, outs),
                 subjid=1:n)
 d$days[1] <- NA
 d$race[1:10] <- NA
@@ -199,7 +196,8 @@ d <- upData(d, labels=c(x1='MI', x2='Stroke', x3='AKI', x4='Migraines',
                  x5='Pregnant', x6='Other event', x7='MD withdrawal',
                  race='Race', sex='Sex', treat='treatment',
                  sbp='Systolic BP', days='Time Since Randomization',
-                 meda='Medication A', medb='Medication B'),
+                 meda='Medication A', medb='Medication B',
+								 outcome='Ordinal Outcome'),
             units=c(sbp='mmHg', dbp='mmHg', age='years', days='days'),
             print=FALSE)
 dasna <- subset(d, region=='North America')
@@ -250,6 +248,12 @@ f <- function(x) {
 dReport(sbp ~ treat, data=d,
         fun = f, head='Mean and confidence limits')
 #        popts = list(textplot='Mean', digits=1),
+```
+
+# Ordinal Outcome Summary
+
+```{r ord,results='asis'}
+dReport(outcome ~ treat + sex, groups='treat', what='stacked', data=d, w=800, h=400)
 ```
 
 # Medication Usage Over Time

@@ -1,8 +1,8 @@
 #' Descriptive Statistics Report
 #'
-#' Generate graphics and LaTeX with descriptive statistics
+#' Generate graphics and html with descriptive statistics
 #' 
-#' \code{dReport} generates multi-panel charts, separately for categorical analysis variables and continuous ones.  The Hmisc \code{summaryP} function and its plot method are used for categorical variables, and \code{bpplotM} is used to make extended box plots for continuous ones unless \code{what='byx'}.   Stratification is by treatment or other variables.  The user must have defined a LaTeX macro \code{\\eboxpopup} (which may be defined to do nothing) with one argument.  This macro is called with argument \code{extended box plot} whenever that phrase appears in the legend, so that a \code{PDF} popup may be generated to show the prototype.  See the example in \code{report.Rnw} in the \code{tests} directory.  Similarly a popup macro \code{\\qintpopup} must be defined, which generates a tooltip for the phrase \code{quantile intervals}.
+#' \code{dReport} generates multi-panel charts, separately for categorical analysis variables and continuous ones.  The Hmisc \code{summaryP} function and its plot method are used for categorical variables, \code{bpplotM} is used to make extended box plots for continuous ones unless \code{what='byx'}, and \code{propsPO} is used for stack bar charts showing relative proportons.   Stratification is by treatment or other variables. 
 #'
 #' @param formula a formula accepted by the \code{bpplotM} or \code{summaryP} functions.  \code{formula} must have an \code{id(subjectidvariable)} term if there are repeated measures, in order to get correct subject counts as \code{nobs}.
 #' @param groups a superpositioning variable, usually treatment, for categorical charts.  For continuous analysis variables, \code{groups} becomes the \code{y}-axis stratification variable.  This is a single character string.
@@ -11,7 +11,6 @@
 #' @param byx.type set to \code{"quantiles"} to show vertical quantile intervals of \code{y} at each \code{x} for when \code{what="byx"} and the \code{y} variable is continuous numeric, or set \code{byx.type="hist"} (the default) to plot spike histograms along with quantile intervals at each \code{x}.
 #' @param summaryPsort set to \code{TRUE} to sort categories in descending order of frequencies
 #' @param exclude1 logical used for \code{latex} methods when \code{summaryM} or \code{summaryP} are called by \code{dReport}, or for plot methods for \code{summaryP}.  The default is \code{TRUE} to cause the most frequent level of any two-level categorical variable to not be used as a separate category in the graphic or table.  See \code{\link[Hmisc]{summaryM}}.
-#' @param stable set to \code{FALSE} to suppress creation of backup supplemental tables for graphics
 #' @param fun a function that takes individual response variables (which may be matrices, as in \code{\link[survival]{Surv}} objects) and creates one or more summary statistics that will be computed while the resulting data frame is being collapsed to one row per condition.  Dot charts are drawn when \code{fun} is given.
 #' @param data data frame
 #' @param subset a subsetting epression for the entire analysis
@@ -21,21 +20,20 @@
 #' @param continuous the minimum number of numeric values a variable must have in order to be considered continuous.  Also passed to \code{summaryM}.
 #' @param h numeric.  Height of plot, in inches
 #' @param w numeric.  Width of plot
-#' @param sopts list specifying extra arguments to pass to \code{histboxpM}, \code{ecdfpM}, \code{summaryP}, or \code{summaryS}
+#' @param sopts list specifying extra arguments to pass to \code{histboxpM}, \code{ecdfpM}, \code{summaryP}, \code{summaryS}, or \code{propsPO}
 #' @param popts list specifying extra arguments to pass to a plot method.
 #' @export
 #' @importFrom Formula Formula model.part
-#' @importFrom grDevices adjustcolor
 #' @examples
 #' # See test.Rnw in tests directory
 
 dReport <-
   function(formula, groups=NULL,
-           what=c('hist', 'ecdf', 'proportions', 'xy', 'byx'),
+           what=c('hist', 'ecdf', 'proportions', 'xy', 'byx',
+                  'stacked'),
            study=' ',
            byx.type=c('hist', 'quantiles'),
            summaryPsort=FALSE, exclude1=TRUE,
-           stable=TRUE,
            fun=NULL, data=NULL, subset=NULL, na.action=na.retain,
            head=NULL, tail=NULL,
            continuous=10, h=NULL, w=NULL,
@@ -74,7 +72,7 @@ dReport <-
   Y <- model.part(form, data=Y, lhs=1)
 
   ## Extract the terms of the right hand side including
-  ## the id column declared using the 'id' functuion as special.
+  ## the id column declared using the 'id' function as special.
   rhs <- terms(form, rhs=1, specials='id')
   sr  <- attr(rhs, 'specials')
   ## specials counts from lhs variables
@@ -271,6 +269,7 @@ dReport <-
        hist         = paste('Histograms', al),
        ecdf         = paste('Empirical cumultive distribution functions', al),      
        proportions  = paste('Proportions', al),
+       stacked      = paste('Stacked bar chart of proportions', al),
        xy           = if(length(fun)) 'Statistics' else a,
        byx.binary   = paste('Proportions and confidence limits', al),
        byx.discrete =
@@ -341,6 +340,14 @@ dReport <-
            p <- do.call('plot', c(list(s, marginVal=if(margpres) 'All',
                                        groups=groups), popts))
          },   # end proportions
+         stacked = {
+           p <- do.call('propsPO', c(list(formula=formula.no.id,
+                                          data=c(X, Y)), sopts)) +
+             theme(axis.title.y=element_text(margin=margin(r=12)))
+           p <- plotly::ggplotly(p, tooltip='text', height=h, width=w)
+           ## Could not get ggplotly to respect height, width
+           ## p <- plotly::layout(p, margin=list(l=50, r=5, b=5, t=5)) #height=h, width=w, )
+           },
          xy = {
            ## Create xy plots using the given summary function provided in argument
            ## 'fun' (function that transforms the response variables into summary

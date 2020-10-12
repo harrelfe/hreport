@@ -1,0 +1,2 @@
+Changes in version 0.0-5 (2020-10-11)
+   * dReport: added what='stacked' for stacked bar charts especially for ordinal outcomes

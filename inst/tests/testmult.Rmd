@@ -34,12 +34,6 @@ frac <- mu$frac
 mu$styles()              # define HTML styles, functions
 ```
 
-<!--
-May need to run the following system commands one time:
-cd /usr/local/bin
-sudo ln -s /usr/lib/rstudio/bin/pandoc/pandoc-citeproc
--->
-
 ```{r gendata}
 # Function to generate data for one study
 gendat <- function(study, n) {

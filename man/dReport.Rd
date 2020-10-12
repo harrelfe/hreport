@@ -7,12 +7,11 @@
 dReport(
   formula,
   groups = NULL,
-  what = c("hist", "ecdf", "proportions", "xy", "byx"),
+  what = c("hist", "ecdf", "proportions", "xy", "byx", "stacked"),
   study = " ",
   byx.type = c("hist", "quantiles"),
   summaryPsort = FALSE,
   exclude1 = TRUE,
-  stable = TRUE,
   fun = NULL,
   data = NULL,
   subset = NULL,
@@ -41,8 +40,6 @@ dReport(
 
 \item{exclude1}{logical used for \code{latex} methods when \code{summaryM} or \code{summaryP} are called by \code{dReport}, or for plot methods for \code{summaryP}.  The default is \code{TRUE} to cause the most frequent level of any two-level categorical variable to not be used as a separate category in the graphic or table.  See \code{\link[Hmisc]{summaryM}}.}
 
-\item{stable}{set to \code{FALSE} to suppress creation of backup supplemental tables for graphics}
-
 \item{fun}{a function that takes individual response variables (which may be matrices, as in \code{\link[survival]{Surv}} objects) and creates one or more summary statistics that will be computed while the resulting data frame is being collapsed to one row per condition.  Dot charts are drawn when \code{fun} is given.}
 
 \item{data}{data frame}
@@ -61,15 +58,15 @@ dReport(
 
 \item{w}{numeric.  Width of plot}
 
-\item{sopts}{list specifying extra arguments to pass to \code{histboxpM}, \code{ecdfpM}, \code{summaryP}, or \code{summaryS}}
+\item{sopts}{list specifying extra arguments to pass to \code{histboxpM}, \code{ecdfpM}, \code{summaryP}, \code{summaryS}, or \code{propsPO}}
 
 \item{popts}{list specifying extra arguments to pass to a plot method.}
 }
 \description{
-Generate graphics and LaTeX with descriptive statistics
+Generate graphics and html with descriptive statistics
 }
 \details{
-\code{dReport} generates multi-panel charts, separately for categorical analysis variables and continuous ones.  The Hmisc \code{summaryP} function and its plot method are used for categorical variables, and \code{bpplotM} is used to make extended box plots for continuous ones unless \code{what='byx'}.   Stratification is by treatment or other variables.  The user must have defined a LaTeX macro \code{\\eboxpopup} (which may be defined to do nothing) with one argument.  This macro is called with argument \code{extended box plot} whenever that phrase appears in the legend, so that a \code{PDF} popup may be generated to show the prototype.  See the example in \code{report.Rnw} in the \code{tests} directory.  Similarly a popup macro \code{\\qintpopup} must be defined, which generates a tooltip for the phrase \code{quantile intervals}.
+\code{dReport} generates multi-panel charts, separately for categorical analysis variables and continuous ones.  The Hmisc \code{summaryP} function and its plot method are used for categorical variables, \code{bpplotM} is used to make extended box plots for continuous ones unless \code{what='byx'}, and \code{propsPO} is used for stack bar charts showing relative proportons.   Stratification is by treatment or other variables.
 }
 \examples{
 # See test.Rnw in tests directory
