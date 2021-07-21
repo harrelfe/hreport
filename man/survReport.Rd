@@ -90,3 +90,6 @@ Generate a Survival Report with Kaplan-Meier Estimates
   # Two plots for t1, one plot for t2
 }
 }
+\references{
+Boers M (2004): Null bar and null zone are better than the error bar to compare group means in graphs.  J Clin Epi 57:712-715.
+}

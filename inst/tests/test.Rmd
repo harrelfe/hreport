@@ -131,17 +131,18 @@ accrualReport(enroll(edate) + randomize(rdate) ~
 
 # Exclusions
 ```{r excl,results='asis'}
+f <- 0.05
 d <- upData(d,
             subjid = 1 : n,
             pend   = rbinom(n, 1, .1),
-            e1     = rbinom(n, 1, .02),
-            e2     = rbinom(n, 1, .02),
-            e3     = rbinom(n, 1, .02),
+            e1     = rbinom(n, 1, f),
+            e2     = rbinom(n, 1, f),
+            e3     = rbinom(n, 1, f),
             e4     = ifelse(runif(n) < 0.25, NA, rbinom(n, 1, .10)),
             tested = rbinom(n, 1, .75),
             e5     = ifelse(tested, rbinom(n, 1, .04), NA),
-            e6     = rbinom(n, 1, .02),
-            e7     = rbinom(n, 1, .02),
+            e6     = rbinom(n, 1, f),
+            e7     = rbinom(n, 1, f),
             rndz   = rbinom(n, 1, .75),
             labels=c(e1='Prior MI', e2='History of Asthma',
               e3='History of Upper GI Bleeding',
@@ -153,6 +154,7 @@ erd <- data.frame(subjid = 1 : 50,
                   loc   = sample(c('gastric', 'lung', 'trachea'), 50, TRUE))
 
 # To check warning messages, greportOption denom does not match pend, e1-e7
+options(dumpfile='/tmp/z')    # for seeing frequencies of all combinations
 exReport(~ pending(pend) + e1 + e2 + e3 + e4 + e5 + e6 + e7 +
          randomized(rndz) + id(subjid) + cond(e5, 'Tested', tested),
          erdata = erd,

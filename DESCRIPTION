@@ -1,6 +1,6 @@
 Package: hreport
 Version: 0.5-0
-Date: 2020-10-11
+Date: 2021-07-20
 Title: Interactive Graphical HTML Reports for Clinical Trials
 Author: Frank E Harrell Jr <fh@fharrell.com>
 Maintainer: Frank E Harrell Jr <fh@fharrell.com>
@@ -14,7 +14,6 @@ Imports:
     survival,
     methods,
     plotly (>= 4.5.2),
-    base64enc,
     grDevices,
     graphics,
     stats,

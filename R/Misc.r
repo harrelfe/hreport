@@ -206,3 +206,16 @@ mfrowSuggest <- function(n, small=FALSE) {
     }
   mf
 }
+##' Print to File for Debugging
+##'
+##' If `options(dumpfile="...")` is set, uses `Hmisc::prn()` to print objects for debugging
+##' @param x input to `prn`
+##' @param txt text label, defaults to name of `x` argument
+##' @author Frank Harrell
+##' @md
+pdumpit <- function(x, txt=as.character(substitute(x))) {
+  fi <- .Options$dumpfile
+  if(length(fi) && is.character(fi))
+    prn(x, txt, file=fi)
+  invisible()
+}

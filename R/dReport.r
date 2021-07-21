@@ -47,6 +47,8 @@ dReport <-
   options(grType='plotly')
   popts <- c(popts, list(colors=gethreportOption('tx.col', study=study)))
 
+  pdumpit(llist(formula, groups, what, study, byx.type, tvar, popts), 'dReport')
+
   margpres <- length(data) && '.marginal.' %in% names(data)
 
   ## Find the number of observations in the Y variables grouped
@@ -312,6 +314,8 @@ dReport <-
   ## Generate the plot of the object based on the value of the argument 'what'
   ## (main controlling variable for dReport)
 
+  pdumpit(sopts, 'dReport')
+  
   switch(what,
          ## Spike histograms
          hist = {
@@ -337,12 +341,16 @@ dReport <-
            s <- do.call('summaryP', c(dl, sopts))
            popts$col    <- popts$colors
            popts$colors <- NULL
-           p <- do.call('plot', c(list(s, marginVal=if(margpres) 'All',
-                                       groups=groups), popts))
+           arg <- c(list(s, marginVal=if(margpres) 'All',
+                        groups=groups), popts)
+           pdumpit(arg, 'dReport plot.summaryP')
+           p <- do.call('plot', arg)
          },   # end proportions
          stacked = {
-           p <- do.call('propsPO', c(list(formula=formula.no.id,
-                                          data=c(X, Y)), sopts)) +
+           arg <- c(list(formula=formula.no.id,
+                         data=c(X, Y)), sopts)
+           pdumpit(arg, 'propsPO')
+           p <- do.call('propsPO', arg) + 
              theme(axis.title.y=element_text(margin=margin(r=12)))
            p <- plotly::ggplotly(p, tooltip='text', height=h, width=w)
            ## Could not get ggplotly to respect height, width

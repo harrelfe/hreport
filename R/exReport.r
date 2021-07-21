@@ -36,6 +36,8 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
                      detailTail=NULL,
                      details=TRUE) {
 
+  pdump <- if(length(dfile <- .Options$dumpfile))
+             function(...) prn(..., file=dfile) else function(...) {}
   
   if(length(ignoreExcl)) ignoreExcl <- all.vars(ignoreExcl)
   if(length(ignoreRand)) ignoreRand <- all.vars(ignoreRand)
@@ -179,6 +181,7 @@ exReport <- function(formula, data=NULL, subset=NULL, na.action=na.retain,
   
   ## Draw combination (attribute) chart
   nP <- 1
+  pdump(subset(as.data.frame(table(X[use, ])), Freq > 0), 'combplotp')
   Pl[[nP]] <- combplotp(data=X[use, ], N=norig, includenone=FALSE)
   u <- if(length(rnd)) 'randomized participants' else 'the data'
   cap <- c('All combinations of exclusions occurring in',

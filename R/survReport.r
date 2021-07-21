@@ -23,6 +23,8 @@
 #' @importFrom rms npsurv survplotp
 #' @importFrom survival survfit
 #' @importFrom Formula Formula model.part
+#' @references
+#'    Boers M (2004): Null bar and null zone are better than the error bar to compare group means in graphs.  J Clin Epi 57:712-715.
 #' @export
 #' @examples
 #' # See tests directory test.Rnw for a live example
